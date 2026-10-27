@@ -55,7 +55,7 @@
 <body>
 <div id="signin" class="card">
   <h2>Sign in to __APP_NAME__</h2>
-  <p class="muted">Enter the ADMIN_TOKEN you set when you deployed. To sign in with Google instead, set up Cloudflare Access (see docs/deploy.md).</p>
+  <p class="muted">Type the ADMIN_TOKEN from the deploy. To sign in with Google, configure Cloudflare Access. Refer to docs/deploy.md.</p>
   <div class="row"><input id="admin-token" class="grow" type="password" autocomplete="current-password" placeholder="Admin token"><button class="primary" id="signin-btn">Sign in</button></div>
   <p class="error" id="signin-error"></p>
 </div>
@@ -90,13 +90,13 @@
       <div class="card">
         <h2>New agent token</h2>
         <div class="row">
-          <input id="agent-id" placeholder="agent id, e.g. claude" pattern="[a-z0-9][a-z0-9-]*">
+          <input id="agent-id" placeholder="agent ID, for example claude" pattern="[a-z0-9][a-z0-9-]*">
           <select id="agent-scopes"><option value="read,write">read and write</option><option value="read">read only</option></select>
           <button class="primary" id="mint">Make token</button>
         </div>
         <p class="error" id="mint-error"></p>
         <div id="minted" hidden>
-          <p>Copy this token now. It is shown one time only.</p>
+          <p>Copy this token now. The console shows it one time only.</p>
           <div class="token" id="minted-token"></div>
         </div>
       </div>
@@ -105,14 +105,14 @@
     <section id="view-connect" hidden>
       <div class="card">
         <h2>Connect an agent</h2>
-        <p>Make a token on the Agents tab, then give the agent this MCP address with the token as a bearer token.</p>
+        <p>Make a token on the Agents page. Give the agent this MCP address. Give the agent the token as a bearer token.</p>
         <pre id="mcp-url"></pre>
         <h2>Claude Code</h2>
         <pre id="snippet-claude"></pre>
-        <h2>JSON config (Cursor, Claude Desktop with mcp-remote, and others)</h2>
+        <h2>JSON configuration (Cursor, Claude Desktop with mcp-remote, and other clients)</h2>
         <pre id="snippet-json"></pre>
         <h2>REST</h2>
-        <p class="muted">Every MCP tool is also at <code>POST /v1/tools/&lt;name&gt;</code> with a JSON body.</p>
+        <p class="muted">Each MCP tool is also available at <code>POST /v1/tools/&lt;name&gt;</code> with a JSON body.</p>
         <pre id="snippet-rest"></pre>
       </div>
     </section>
@@ -164,7 +164,7 @@
     $("signin-error").textContent = "";
     try {
       const me = await tool("whoami");
-      if (!me.admin) throw new Error("That token is an agent token. Use the ADMIN_TOKEN.");
+      if (!me.admin) throw new Error("This token is an agent token. Use the ADMIN_TOKEN.");
       try { sessionStorage.setItem("pantry-admin", token); } catch {}
       start(me);
     } catch (err) {
@@ -201,7 +201,7 @@
             <td class="num">${fmt(e.totals.carbs_g)}</td><td class="num">${fmt(e.totals.fat_g)}</td><td class="muted">${esc(e.agent_id)}</td>
             <td><button class="ghost danger" data-delete-entry="${esc(e.id)}">Delete</button></td></tr>`).join("")}
           </table></div></div>`).join("")
-      : `<div class="card muted">Nothing logged on this day.</div>`;
+      : `<div class="card muted">There are no entries for this day.</div>`;
     bars();
   }
 
@@ -226,7 +226,7 @@
           <td>${t ? `<code>${esc(t.id.slice(-8))}</code>${t.revoked_at ? ' <span class="muted">revoked</span>' : ""}` : "–"}</td>
           <td>${t ? esc(t.scopes.join(", ")) : ""}</td><td class="muted">${t?.last_used_at ? esc(t.last_used_at.slice(0, 16).replace("T", " ")) : "never"}</td>
           <td>${t && !t.revoked_at ? `<button class="ghost danger" data-revoke="${esc(t.id)}">Revoke</button>` : ""}</td></tr>`)).join("")
-      : `<tr><td class="muted">No agents yet. Make a token above.</td></tr>`;
+      : `<tr><td class="muted">There are no agents. Make a token above.</td></tr>`;
   }
 
   function loadConnect() {
@@ -274,7 +274,7 @@
     const target = e.target.closest("[data-revoke], [data-delete-entry]");
     if (!target) return;
     try {
-      if (target.dataset.revoke && confirm("Revoke this token? The agent using it stops working.")) {
+      if (target.dataset.revoke && confirm("Revoke this token? The agent that uses it will stop.")) {
         await api(`/v1/admin/tokens/${encodeURIComponent(target.dataset.revoke)}`, null, "DELETE");
         await loadAgents();
       }

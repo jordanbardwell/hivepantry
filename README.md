@@ -1,60 +1,73 @@
 # HivePantry
 
-HivePantry is a calorie and macronutrient log for AI agents. Agents log what you eat, look up your saved foods, and read your daily totals and goals over MCP. It runs in your own Cloudflare account, on the free plan, and you own the data.
+HivePantry is a log of calories and macronutrients for AI agents. Agents record the food that you eat. Agents also read your saved foods, daily totals, and goals through MCP. HivePantry operates in your own Cloudflare account on the free plan. You own the data.
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/jordanbardwell/hivepantry)
 
-## What it does
+## Functions
 
-- Agents log food by saved food, or by name with calories, protein, carbs, and fat. Every log returns the day's totals and what is left of each goal.
-- A food library: save a food once, find it later by name, brand, or barcode, and log it by servings or grams.
-- Daily goals for calories, protein, carbs, fat, fiber, sugar, and sodium, with history.
-- Daily, weekly, and longer trends, and body weight in kg or lb.
-- Each agent gets its own token, read-only or read and write. Every entry records which agent logged it.
-- A web console shows today and recent trends, and makes and revokes agent tokens.
+- Agents log food from a saved food, or from a name with calories, protein, carbohydrates, and fat.
+- Each log reply shows the totals for the day and the quantity that remains for each goal.
+- The food library keeps foods that you eat frequently. Agents find a food by name, brand, or barcode. Agents log a food by servings or by grams.
+- You can set daily goals for calories, protein, carbohydrates, fat, fiber, sugar, and sodium. A goal change does not change the goals of earlier days.
+- Agents show daily totals and trends for a period. Agents also log your body weight in kg or lb.
+- Each agent has its own token. A token has read access, or read and write access. Each entry shows the agent that logged it.
+- The web console shows the current day and recent trends. You make and revoke agent tokens in the console.
 
 ## Deploy
 
-1. Click **Deploy to Cloudflare** above. Sign in to Cloudflare and GitHub.
-2. Enter an admin password in `ADMIN_TOKEN`. Use 16 characters or more, and keep it somewhere safe.
-3. Set `PANTRY_TZ` to your time zone, for example `America/New_York`. Days and daily totals follow it.
-4. Wait for the deploy to finish.
-5. Open `https://<worker>.<subdomain>.workers.dev/console` and sign in with your `ADMIN_TOKEN`.
+1. Click **Deploy to Cloudflare** above.
+2. Sign in to Cloudflare and GitHub.
+3. Type an admin password in `ADMIN_TOKEN`. Use a minimum of 16 characters.
+4. Keep the password in a safe location.
+5. Type your time zone in `PANTRY_TZ`, for example `America/New_York`. If you are not sure, keep `UTC`.
+6. Keep `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` empty.
+7. Wait until the deploy is complete.
+8. Open `https://<worker>.<subdomain>.workers.dev/console`.
+9. Sign in with your `ADMIN_TOKEN`.
 
-To sign in with Google instead of the password, add Cloudflare Access after the deploy: see [docs/deploy.md](docs/deploy.md#sign-in-with-google-cloudflare-access).
+The deploy makes the D1 database and applies its schema. Your copy receives the updates from this repository one time each day.
 
-The deploy creates the D1 database and applies its schema. Your copy gets updates from this repository once a day. See [docs/deploy.md](docs/deploy.md) for updates and a deploy by hand.
+To sign in with Google and not with the password, configure Cloudflare Access after the deploy. Refer to [docs/deploy.md](docs/deploy.md#sign-in-with-google-cloudflare-access).
+
+For updates and a manual deploy, refer to [docs/deploy.md](docs/deploy.md).
 
 ## Connect an agent
 
-1. In the console, open **Agents**, enter a name such as `claude`, and click **Make token**. Copy the token; it is shown once.
-2. Give the agent the MCP address `https://<worker>.<subdomain>.workers.dev/mcp` with the token as a bearer token. For Claude Code:
+1. In the console, open **Agents**.
+2. Type a name for the agent, for example `claude`.
+3. Click **Make token**.
+4. Copy the token. The console shows the token one time only.
+5. Give the agent the MCP address `https://<worker>.<subdomain>.workers.dev/mcp`.
+6. Give the agent the token as a bearer token. For Claude Code, use this command:
 
    ```sh
    claude mcp add --transport http pantry https://<worker>.<subdomain>.workers.dev/mcp \
      --header "Authorization: Bearer <agent token>"
    ```
 
-3. The agent can call `guide` to learn the tools. The **Connect** tab in the console has more config snippets.
+7. Tell the agent to call the `guide` tool first. The `guide` tool tells the agent how to use the other tools.
 
-Every MCP tool is also a REST call at `POST /v1/tools/<name>` with a JSON body. See [docs/api.md](docs/api.md).
+The **Connect** page in the console shows more configuration examples.
+
+Each MCP tool is also a REST call at `POST /v1/tools/<name>` with a JSON body. Refer to [docs/api.md](docs/api.md).
 
 ## Documentation
 
-- [docs/architecture.md](docs/architecture.md): stack, data model, tools, auth, and deploy flow
-- [docs/api.md](docs/api.md): MCP tools and REST routes
-- [docs/deploy.md](docs/deploy.md): one-click deploy, updates, and deploy by hand
+- [docs/architecture.md](docs/architecture.md): the stack, the data model, the tools, authentication, and the deploy procedure
+- [docs/api.md](docs/api.md): the MCP tools and the REST routes
+- [docs/deploy.md](docs/deploy.md): the one-click deploy, updates, Google sign-in, and the manual deploy
 
 ## Development
 
 ```sh
 pnpm install
 cp .dev.vars.example .dev.vars
-pnpm dev          # local worker with a local D1 at http://localhost:8787
+pnpm dev          # local worker and local D1 at http://localhost:8787
 pnpm typecheck
-pnpm test         # vitest in the Workers runtime, with a local D1
+pnpm test         # vitest in the Workers runtime with a local D1
 ```
 
 ## License
 
-This repository does not have a license yet.
+This repository does not have a license at this time.

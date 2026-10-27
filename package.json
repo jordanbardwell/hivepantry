@@ -4,9 +4,13 @@
   "private": true,
   "packageManager": "pnpm@10.33.4",
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild", "workerd", "sharp"]
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "workerd",
+      "sharp"
+    ]
   },
-  "description": "HivePantry is a calorie and macronutrient log for AI agents. A Cloudflare Worker serves MCP and REST. D1 stores the log.",
+  "description": "HivePantry is a log of calories and macronutrients for AI agents. A Cloudflare Worker serves MCP and REST. D1 keeps the log.",
   "type": "module",
   "engines": {
     "node": ">=22"
@@ -22,16 +26,16 @@
   "cloudflare": {
     "bindings": {
       "ADMIN_TOKEN": {
-        "description": "Your admin password, at least 16 characters. You sign in to /console with it and mint agent tokens there. Keep it somewhere safe."
+        "description": "Your admin password. Use a minimum of 16 characters. You sign in to /console with it. You make agent tokens there. Keep it in a safe location."
       },
       "PANTRY_TZ": {
-        "description": "Your IANA time zone, for example America/New_York. Days and daily totals follow it. Leave UTC if unsure."
+        "description": "Your IANA time zone, for example America/New_York. Days and daily totals use this time zone. If you are not sure, keep UTC."
       },
       "ACCESS_TEAM_DOMAIN": {
-        "description": "Optional, for Google sign-in through Cloudflare Access. Leave empty now; docs/deploy.md says how to set it after the deploy."
+        "description": "Optional. This enables Google sign-in through Cloudflare Access. Keep it empty now. To set it after the deploy, refer to docs/deploy.md."
       },
       "ACCESS_AUD": {
-        "description": "Optional, for Google sign-in through Cloudflare Access. Leave empty now; docs/deploy.md says how to set it after the deploy."
+        "description": "Optional. This enables Google sign-in through Cloudflare Access. Keep it empty now. To set it after the deploy, refer to docs/deploy.md."
       }
     }
   },
