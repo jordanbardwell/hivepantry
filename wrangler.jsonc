@@ -1,0 +1,30 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  // The Deploy to Cloudflare config. It names the database but not its id, so a deploy creates
+  // the database. No account id, resource id, or secret belongs in git.
+  "name": "hivepantry",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-17",
+  "compatibility_flags": ["nodejs_compat"],
+  "upload_source_maps": true,
+  "observability": { "enabled": true },
+  "workers_dev": true,
+  "rules": [{ "type": "Text", "globs": ["**/*.html", "**/*.md"], "fallthrough": true }],
+  "vars": {
+    "PANTRY_TZ": "UTC",
+    // Email addresses (comma-separated) that may sign in to the console through Cloudflare Access.
+    // When set, the deploy makes the Access application and sets the two ACCESS_ vars itself.
+    "OWNER_EMAIL": "",
+    "ACCESS_TEAM_DOMAIN": "",
+    "ACCESS_AUD": "",
+    "GIT_SHA": ""
+  },
+  "secrets": { "required": ["ADMIN_TOKEN"] },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "hivepantry-db",
+      "migrations_dir": "migrations"
+    }
+  ]
+}

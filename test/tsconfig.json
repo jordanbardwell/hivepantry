@@ -1,0 +1,10 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "types": ["@cloudflare/vitest-plugin/types"],
+    "noUnusedLocals": false,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true
+  },
+  "include": ["./**/*.ts", "../src/**/*.ts", "../scripts/access-setup.ts", "../worker-configuration.d.ts"]
+}
