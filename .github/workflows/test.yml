@@ -1,0 +1,31 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Test suite
+        run: pnpm test
+      - name: Tracked config holds no resource ids
+        run: |
+          if grep -q database_id wrangler.jsonc; then echo "wrangler.jsonc must not name a database_id; Deploy to Cloudflare creates the database"; exit 1; fi
+          grep -q '"workers_dev": true' wrangler.jsonc
