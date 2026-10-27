@@ -55,7 +55,7 @@
 <body>
 <div id="signin" class="card">
   <h2>Sign in to __APP_NAME__</h2>
-  <p class="muted">Enter the ADMIN_TOKEN you set when you deployed.</p>
+  <p class="muted">Enter the ADMIN_TOKEN you set when you deployed. To sign in with Google instead, set up Cloudflare Access (see docs/deploy.md).</p>
   <div class="row"><input id="admin-token" class="grow" type="password" autocomplete="current-password" placeholder="Admin token"><button class="primary" id="signin-btn">Sign in</button></div>
   <p class="error" id="signin-error"></p>
 </div>
@@ -70,6 +70,7 @@
       <button data-view="connect">Connect</button>
     </nav>
     <span class="grow"></span>
+    <span class="muted" id="who"></span>
     <button class="ghost" id="signout">Sign out</button>
   </header>
   <main>
@@ -132,7 +133,7 @@
   async function api(path, body, method) {
     const res = await fetch(path, {
       method: method || (body ? "POST" : "GET"),
-      headers: { authorization: `Bearer ${token}`, ...(body ? { "content-type": "application/json" } : {}) },
+      headers: { ...(token ? { authorization: `Bearer ${token}` } : {}), ...(body ? { "content-type": "application/json" } : {}) },
       body: body ? JSON.stringify(body) : undefined,
     });
     const json = await res.json().catch(() => ({ ok: false, error: { message: `HTTP ${res.status}` } }));
@@ -144,7 +145,14 @@
   }
   const tool = (name, args) => api(`/v1/tools/${name}`, args || {});
 
+  // "access" when Cloudflare Access signed the owner in; its own logout ends that session.
+  let via = "";
+
   function signOut() {
+    if (via === "access") {
+      location.href = "/cdn-cgi/access/logout";
+      return;
+    }
     token = "";
     try { sessionStorage.removeItem("pantry-admin"); } catch {}
     $("app").hidden = true;
@@ -237,6 +245,8 @@
   }
 
   function start(me) {
+    via = me.signed_in_with;
+    $("who").textContent = me.email || "";
     $("signin").hidden = true;
     $("app").hidden = false;
     $("day").value = me.today;
@@ -277,7 +287,11 @@
     }
   });
 
-  if (token) tool("whoami").then((me) => (me.admin ? start(me) : signOut()), signOut);
+  // Behind Cloudflare Access the browser is already signed in, so try without a token first.
+  tool("whoami").then((me) => (me.admin ? start(me) : signOut()), () => {
+    token = "";
+    try { sessionStorage.removeItem("pantry-admin"); } catch {}
+  });
 })();
 </script>
 </body>

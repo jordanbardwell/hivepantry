@@ -12,6 +12,9 @@
   "rules": [{ "type": "Text", "globs": ["**/*.html", "**/*.md"], "fallthrough": true }],
   "vars": {
     "PANTRY_TZ": "UTC",
+    // Optional Cloudflare Access sign-in for the console. Both empty leaves it off.
+    "ACCESS_TEAM_DOMAIN": "",
+    "ACCESS_AUD": "",
     "GIT_SHA": ""
   },
   "secrets": { "required": ["ADMIN_TOKEN"] },

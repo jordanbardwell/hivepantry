@@ -26,6 +26,12 @@
       },
       "PANTRY_TZ": {
         "description": "Your IANA time zone, for example America/New_York. Days and daily totals follow it. Leave UTC if unsure."
+      },
+      "ACCESS_TEAM_DOMAIN": {
+        "description": "Optional, for Google sign-in through Cloudflare Access. Leave empty now; docs/deploy.md says how to set it after the deploy."
+      },
+      "ACCESS_AUD": {
+        "description": "Optional, for Google sign-in through Cloudflare Access. Leave empty now; docs/deploy.md says how to set it after the deploy."
       }
     }
   },

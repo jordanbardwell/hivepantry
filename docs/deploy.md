@@ -13,10 +13,24 @@ The button can read only a public repository.
 | Name | Kind | Purpose |
 | --- | --- | --- |
 | `ADMIN_TOKEN` | secret, required | The owner password, at least 16 characters. Signs in to `/console` and calls `/v1/admin`. Changing it does not affect agent tokens. |
+| `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD` | var, optional | Turn on Google sign-in through Cloudflare Access; see below. Leave empty at deploy. |
 | `PANTRY_TZ` | var | IANA time zone for days and daily totals. Default `UTC`. Changing it later moves the day boundary for new entries only. |
 | `GIT_SHA` | var | Set by the deploy script. |
 
 Change a setting in the Cloudflare dashboard: open the worker, then **Settings**, then **Variables and Secrets**. Or run `pnpm exec wrangler secret put ADMIN_TOKEN --config wrangler.jsonc`.
+
+## Sign in with Google (Cloudflare Access)
+
+The console can sign you in through [Cloudflare Access](https://developers.cloudflare.com/workers/configuration/cloudflare-access/) instead of the admin password. Access is free for up to 50 users and offers Google, GitHub, or a one-time code by email. `ADMIN_TOKEN` keeps working, and agents keep their tokens: MCP clients cannot complete a browser login, so Access must not stand in front of `/mcp` or `/v1/tools`.
+
+1. Put Access in front of the console only:
+   - **Custom domain (cleanest).** Add a custom domain to the worker. In Zero Trust, create a self-hosted Access application for `<your domain>/console` with a policy that allows your email.
+   - **workers.dev.** The worker's one-click Access setting protects the whole `workers.dev` hostname, which also blocks agents. If you use it, add a second Access application for the same hostname with the paths `/mcp` and `/v1/` and a **Bypass** policy for everyone; the worker still checks every bearer token.
+2. Add a login method under Zero Trust **Settings > Authentication**. One-time PIN needs no setup; Google needs a Google OAuth client.
+3. Copy the application's **Application Audience (AUD) Tag** and your team domain (`<team>.cloudflareaccess.com`).
+4. Set the worker vars `ACCESS_AUD` and `ACCESS_TEAM_DOMAIN` (worker **Settings > Variables and Secrets**, or the `vars` in your copy of `wrangler.jsonc`), then open `/console`.
+
+The worker verifies the Access JWT itself: RS256 against `https://<team>/cdn-cgi/access/certs`, with the configured audience and issuer, and checks expiry. It reads the `Cf-Access-Jwt-Assertion` header, or the `CF_Authorization` cookie on same-origin requests, because Access adds the header only on the paths it protects and the console calls `/v1`. Both vars empty turns Access sign-in off. A bearer token on a request always wins over an Access sign-in.
 
 ## Updates
 

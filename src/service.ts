@@ -251,6 +251,8 @@ export function whoami(ctx: Ctx) {
     version: VERSION,
     agent_id: ctx.access.agentId,
     admin: ctx.access.admin,
+    signed_in_with: ctx.access.via,
+    ...(ctx.access.email ? { email: ctx.access.email } : {}),
     scopes: ctx.access.scopes,
     time_zone: ctx.zone,
     today: today(ctx),

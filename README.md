@@ -21,6 +21,8 @@ HivePantry is a calorie and macronutrient log for AI agents. Agents log what you
 4. Wait for the deploy to finish.
 5. Open `https://<worker>.<subdomain>.workers.dev/console` and sign in with your `ADMIN_TOKEN`.
 
+To sign in with Google instead of the password, add Cloudflare Access after the deploy: see [docs/deploy.md](docs/deploy.md#sign-in-with-google-cloudflare-access).
+
 The deploy creates the D1 database and applies its schema. Your copy gets updates from this repository once a day. See [docs/deploy.md](docs/deploy.md) for updates and a deploy by hand.
 
 ## Connect an agent

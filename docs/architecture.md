@@ -86,6 +86,7 @@ Each reply is `{ ok: true, data }` or `{ ok: false, error: { code, message, issu
 ## Auth
 
 - `ADMIN_TOKEN` is a Worker secret, asked for by the deploy form, at least 16 characters. It is the owner: it can call every tool and the `/v1/admin` routes, and it signs in to the console.
+- Optionally, the owner signs in with Google (or another login) through Cloudflare Access instead. When `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` are set, a verified Access JWT (header, or `CF_Authorization` cookie on same-origin requests) is the owner. The Deploy button cannot create an Access application, so this is a step after the deploy and `ADMIN_TOKEN` stays as the first-login fallback. See `docs/deploy.md`.
 - Agent tokens are minted by the admin (console or `POST /v1/admin/tokens`). A token is `hp_<agent>_<43 random chars>`, 256 bits of entropy, shown once. D1 stores only its SHA-256. At that entropy a hash cannot be reversed, so unlike HiveAttic there is no pepper secret to generate or rotate.
 - Scopes are `read` and `write`. All agents of a copy act for the same person, so any writer can fix any entry; `agent_id` on each row records who wrote it.
 - Revoking a token or disabling an agent takes effect on the next request (no auth cache).

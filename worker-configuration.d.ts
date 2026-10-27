@@ -4,6 +4,9 @@
 interface __BaseEnv_Env {
 	DB: D1Database;
 	PANTRY_TZ: string;
+	// Optional Cloudflare Access sign-in: the team domain, such as myteam.cloudflareaccess.com, and the application audience tag.
+	ACCESS_TEAM_DOMAIN?: string;
+	ACCESS_AUD?: string;
 	// The build's commit, set by scripts/deploy.ts.
 	GIT_SHA?: string;
 	ADMIN_TOKEN: string;
@@ -16,7 +19,7 @@ type StringifyValues<EnvType extends Record<string, unknown>> = {
 	[Binding in keyof EnvType]: EnvType[Binding] extends string ? EnvType[Binding] : string;
 };
 declare namespace NodeJS {
-	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "PANTRY_TZ" | "GIT_SHA" | "ADMIN_TOKEN">> {}
+	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "PANTRY_TZ" | "ACCESS_TEAM_DOMAIN" | "ACCESS_AUD" | "GIT_SHA" | "ADMIN_TOKEN">> {}
 }
 declare module "*.html" {
 	const value: string;
