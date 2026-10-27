@@ -27,5 +27,5 @@ jobs:
         run: pnpm test
       - name: Tracked config holds no resource ids
         run: |
-          if grep -q database_id wrangler.jsonc; then echo "wrangler.jsonc must not name a database_id; Deploy to Cloudflare creates the database"; exit 1; fi
+          if grep -q '"database_id"' wrangler.jsonc; then echo "wrangler.jsonc must not name a database_id; Deploy to Cloudflare creates the database"; exit 1; fi
           grep -q '"workers_dev": true' wrangler.jsonc

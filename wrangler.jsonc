@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  // The Deploy to Cloudflare config. It names resources but no database_id, so a deploy creates
+  // The Deploy to Cloudflare config. It names the database but not its id, so a deploy creates
   // the database. No account id, resource id, or secret belongs in git.
   "name": "hivepantry",
   "main": "src/index.ts",
