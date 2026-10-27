@@ -47,6 +47,7 @@ With fewer bindings, the one-click deploy is simpler and stays on the free plan.
 - `src/schemas.ts`: the zod input schemas
 - `src/auth.ts`, `src/admin.ts`: tokens, scopes, and agents
 - `src/access.ts`: the optional Cloudflare Access sign-in
+- `scripts/access-setup.ts`: the deploy step that makes the Access application for the console
 - `src/time.ts`: the time zone and day calculations
 - `src/console.ts`, `src/console.html`: the owner console
 - `src/brand.ts`: the product name, the slug, and the token prefix
@@ -112,8 +113,9 @@ Each reply is `{ ok: true, data }` or `{ ok: false, error: { code, message, issu
 ## Authentication
 
 - `ADMIN_TOKEN` is a Worker secret. The deploy form asks for it. It has a minimum of 16 characters. It is the owner. It can call all tools and the `/v1/admin` routes. It signs in to the console.
-- The owner can also sign in with Google, or with a different login, through Cloudflare Access. To enable this, set `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD`. Then a verified Access JWT is the owner. The worker reads the JWT from the header, or from the `CF_Authorization` cookie on requests from the same origin.
-- The Deploy button cannot make an Access application. Thus, you configure Access after the deploy. `ADMIN_TOKEN` stays as the password for the first sign-in. Refer to `docs/deploy.md`.
+- The owner can also sign in to the console through Cloudflare Access. If `OWNER_EMAIL` is set, the deploy script makes an Access application for `<worker>.<subdomain>.workers.dev/console` only (`scripts/access-setup.ts`). The script sets `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` on the worker.
+- The console calls the API at `/console/api/`, which the worker maps to `/v1/`. Thus, Access covers the console page and its API calls. `/mcp` and `/v1` are not in the Access application, so agents continue to use bearer tokens.
+- The worker verifies the Access JWT in the `Cf-Access-Jwt-Assertion` header. It also examines that the email is in `OWNER_EMAIL`. A verified JWT is the owner. `ADMIN_TOKEN` continues to operate as a second sign-in method.
 - The admin makes agent tokens in the console or with `POST /v1/admin/tokens`. A token has the format `hp_<agent>_<43 random characters>`. It has 256 bits of entropy. The reply shows the token one time only.
 - D1 keeps only the SHA-256 hash of each token. At this entropy, it is not possible to reverse the hash. Thus, a pepper secret is not necessary. HiveAttic uses a pepper secret.
 - The scopes are `read` and `write`. All agents of a copy operate for the same person. Thus, each agent with `write` can correct each entry. The `agent_id` of each row shows the agent that wrote it.
@@ -124,7 +126,7 @@ Each reply is `{ ok: true, data }` or `{ ok: false, error: { code, message, issu
 
 1. The **Deploy to Cloudflare** button copies the repository into the GitHub account of the owner. It connects the copy to Workers Builds.
 2. The button reads `wrangler.jsonc`. The file names the D1 database but does not contain a `database_id`. Thus, the deploy makes the database.
-3. `package.json` `cloudflare.bindings` gives the help text on the form for `ADMIN_TOKEN`, `PANTRY_TZ`, and the Access vars. `secrets.required` makes `ADMIN_TOKEN` necessary.
+3. `package.json` `cloudflare.bindings` gives the help text on the form for `ADMIN_TOKEN`, `PANTRY_TZ`, and `OWNER_EMAIL`. `secrets.required` makes `ADMIN_TOKEN` necessary.
 4. Workers Builds runs `pnpm run deploy` (`scripts/deploy.ts`). The script applies the migrations if the database exists. Then it runs `wrangler deploy` with `GIT_SHA`. Then it applies the migrations again, because the first deploy makes the database during `wrangler deploy`.
 5. `.github/workflows/sync-upstream.yml` moves the `main` of the copy forward to this repository one time each day. The push starts Workers Builds. Workers Builds applies new migrations before the new code starts.
 

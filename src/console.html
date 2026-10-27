@@ -55,7 +55,7 @@
 <body>
 <div id="signin" class="card">
   <h2>Sign in to __APP_NAME__</h2>
-  <p class="muted">Type the ADMIN_TOKEN from the deploy. To sign in with Google, configure Cloudflare Access. Refer to docs/deploy.md.</p>
+  <p class="muted">Type the ADMIN_TOKEN from the deploy. To sign in with your email address, set OWNER_EMAIL and deploy again.</p>
   <div class="row"><input id="admin-token" class="grow" type="password" autocomplete="current-password" placeholder="Admin token"><button class="primary" id="signin-btn">Sign in</button></div>
   <p class="error" id="signin-error"></p>
 </div>
@@ -143,7 +143,7 @@
     }
     return json.data;
   }
-  const tool = (name, args) => api(`/v1/tools/${name}`, args || {});
+  const tool = (name, args) => api(`/console/api/tools/${name}`, args || {});
 
   // "access" when Cloudflare Access signed the owner in; its own logout ends that session.
   let via = "";
@@ -218,7 +218,7 @@
   }
 
   async function loadAgents() {
-    const { agents } = await api("/v1/admin/agents");
+    const { agents } = await api("/console/api/admin/agents");
     $("agents-table").innerHTML = agents.length
       ? `<tr><th>Agent</th><th>Token</th><th>Scopes</th><th>Last used</th><th></th></tr>` +
         agents.flatMap((a) => (a.tokens.length ? a.tokens : [null]).map((t, i) => `<tr>
@@ -262,7 +262,7 @@
   $("mint").addEventListener("click", async () => {
     $("mint-error").textContent = "";
     try {
-      const minted = await api("/v1/admin/tokens", { agent_id: $("agent-id").value.trim(), scopes: $("agent-scopes").value.split(",") });
+      const minted = await api("/console/api/admin/tokens", { agent_id: $("agent-id").value.trim(), scopes: $("agent-scopes").value.split(",") });
       $("minted-token").textContent = minted.token;
       $("minted").hidden = false;
       await loadAgents();
@@ -275,7 +275,7 @@
     if (!target) return;
     try {
       if (target.dataset.revoke && confirm("Revoke this token? The agent that uses it will stop.")) {
-        await api(`/v1/admin/tokens/${encodeURIComponent(target.dataset.revoke)}`, null, "DELETE");
+        await api(`/console/api/admin/tokens/${encodeURIComponent(target.dataset.revoke)}`, null, "DELETE");
         await loadAgents();
       }
       if (target.dataset.deleteEntry && confirm("Delete this entry?")) {

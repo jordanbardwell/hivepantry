@@ -21,14 +21,14 @@ HivePantry is a log of calories and macronutrients for AI agents. Agents record 
 3. Type an admin password in `ADMIN_TOKEN`. Use a minimum of 16 characters.
 4. Keep the password in a safe location.
 5. Type your time zone in `PANTRY_TZ`, for example `America/New_York`. If you are not sure, keep `UTC`.
-6. Keep `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` empty.
+6. Optional: type your email address in `OWNER_EMAIL`. Then you sign in to the console with a code that Cloudflare sends to this address.
 7. Wait until the deploy is complete.
 8. Open `https://<worker>.<subdomain>.workers.dev/console`.
-9. Sign in with your `ADMIN_TOKEN`.
+9. Sign in with the code that Cloudflare sends to your email address. If you did not set `OWNER_EMAIL`, sign in with your `ADMIN_TOKEN`.
 
 The deploy makes the D1 database and applies its schema. Your copy receives the updates from this repository one time each day.
 
-To sign in with Google and not with the password, configure Cloudflare Access after the deploy. Refer to [docs/deploy.md](docs/deploy.md#sign-in-with-google-cloudflare-access).
+If you set `OWNER_EMAIL`, the deploy puts Cloudflare Access in front of the console only. Agents continue to use their tokens on `/mcp`. The Workers Builds token must have two Access permissions for this step. Refer to [docs/deploy.md](docs/deploy.md#console-sign-in-with-cloudflare-access).
 
 For updates and a manual deploy, refer to [docs/deploy.md](docs/deploy.md).
 
@@ -56,7 +56,7 @@ Each MCP tool is also a REST call at `POST /v1/tools/<name>` with a JSON body. R
 
 - [docs/architecture.md](docs/architecture.md): the stack, the data model, the tools, authentication, and the deploy procedure
 - [docs/api.md](docs/api.md): the MCP tools and the REST routes
-- [docs/deploy.md](docs/deploy.md): the one-click deploy, updates, Google sign-in, and the manual deploy
+- [docs/deploy.md](docs/deploy.md): the one-click deploy, updates, the console sign-in, and the manual deploy
 
 ## Development
 

@@ -12,7 +12,9 @@
   "rules": [{ "type": "Text", "globs": ["**/*.html", "**/*.md"], "fallthrough": true }],
   "vars": {
     "PANTRY_TZ": "UTC",
-    // Optional Cloudflare Access sign-in for the console. Both empty leaves it off.
+    // Email addresses (comma-separated) that may sign in to the console through Cloudflare Access.
+    // When set, the deploy makes the Access application and sets the two ACCESS_ vars itself.
+    "OWNER_EMAIL": "",
     "ACCESS_TEAM_DOMAIN": "",
     "ACCESS_AUD": "",
     "GIT_SHA": ""

@@ -1,6 +1,6 @@
 # API
 
-Each request must have the header `Authorization: Bearer <token>`. These requests are the exceptions: `GET /v1/health`, the console page, and requests with a Cloudflare Access sign-in. The token is the `ADMIN_TOKEN` or an agent token. The admin makes the agent tokens.
+Each request must have the header `Authorization: Bearer <token>`. These requests are the exceptions: `GET /v1/health`, the console page, and console requests with a Cloudflare Access sign-in. The token is the `ADMIN_TOKEN` or an agent token. The admin makes the agent tokens.
 
 Each reply is JSON with one of these two formats:
 

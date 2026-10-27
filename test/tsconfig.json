@@ -3,7 +3,8 @@
   "compilerOptions": {
     "types": ["@cloudflare/vitest-plugin/types"],
     "noUnusedLocals": false,
-    "moduleResolution": "bundler"
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true
   },
-  "include": ["./**/*.ts", "../src/**/*.ts", "../worker-configuration.d.ts"]
+  "include": ["./**/*.ts", "../src/**/*.ts", "../scripts/access-setup.ts", "../worker-configuration.d.ts"]
 }

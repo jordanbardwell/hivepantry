@@ -31,11 +31,8 @@
       "PANTRY_TZ": {
         "description": "Your IANA time zone, for example America/New_York. Days and daily totals use this time zone. If you are not sure, keep UTC."
       },
-      "ACCESS_TEAM_DOMAIN": {
-        "description": "Optional. This enables Google sign-in through Cloudflare Access. Keep it empty now. To set it after the deploy, refer to docs/deploy.md."
-      },
-      "ACCESS_AUD": {
-        "description": "Optional. This enables Google sign-in through Cloudflare Access. Keep it empty now. To set it after the deploy, refer to docs/deploy.md."
+      "OWNER_EMAIL": {
+        "description": "Optional. Your email address. The deploy then puts Cloudflare Access in front of the console, and you sign in with a code that Cloudflare sends to this address. Agents continue to use tokens. Use commas between more than one address."
       }
     }
   },

@@ -1,4 +1,4 @@
-import { accessConfig, accessJwtOf, verifyAccessJwt } from "./access";
+import { accessConfig, verifyAccessJwt } from "./access";
 import { sha256Hex, timingSafeEqual } from "./crypto";
 import { PantryError } from "./errors";
 
@@ -29,9 +29,12 @@ export function bearerOf(request: Request): string | null {
 export async function authenticate(request: Request, env: Env, ctx: ExecutionContext): Promise<Access> {
   const token = bearerOf(request);
   const access = accessConfig(env);
-  const jwt = access ? accessJwtOf(request) : null;
+  const jwt = access ? request.headers.get("cf-access-jwt-assertion") : null;
   if (!token && access && jwt) {
     const email = await verifyAccessJwt(jwt, access);
+    // The Access policy decides who signs in. OWNER_EMAIL, when set, is a second check here.
+    const owners = (env.OWNER_EMAIL ?? "").split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
+    if (owners.length && !owners.includes(email.toLowerCase())) throw new PantryError("forbidden", "This Cloudflare Access account is not an owner");
     return { agentId: ADMIN_AGENT_ID, tokenId: "access", scopes: ["read", "write"], admin: true, via: "access", email };
   }
   if (!token) throw new PantryError("unauthorized", "Bearer token required");

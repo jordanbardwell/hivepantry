@@ -15,6 +15,7 @@ export default defineConfig({
           PANTRY_TZ: "America/New_York",
           ACCESS_TEAM_DOMAIN: "test.cloudflareaccess.com",
           ACCESS_AUD: "test-aud",
+          OWNER_EMAIL: "Jordan@example.com, partner@example.com",
           GIT_SHA: "abc123",
           TEST_MIGRATIONS: await readD1Migrations(path.join(root, "migrations")),
         },

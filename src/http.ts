@@ -1,13 +1,14 @@
 import { disableAgent, listAgents, mintToken, revokeToken } from "./admin";
 import { authenticate, bearerOf, requireAdmin } from "./auth";
 import { APP_NAME, VERSION } from "./brand";
-import { consoleResponse } from "./console";
+import { CONSOLE_PATH, consoleResponse } from "./console";
 import { errorBody, PantryError, toPantryError } from "./errors";
 import { mcpHandler } from "./mcp";
 import { mintSchema } from "./schemas";
 import { callTool, TOOLS, TOOLS_BY_NAME } from "./tools";
 
 const MAX_BODY_BYTES = 64 * 1024;
+const CONSOLE_API = `${CONSOLE_PATH}/api/`;
 
 function json(status: number, body: unknown, headers: HeadersInit = {}): Response {
   return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", ...headers } });
@@ -50,9 +51,12 @@ export async function handleFetch(request: Request, env: Env, ctx: ExecutionCont
       return await mcpHandler(request, env, ctx, access);
     }
 
-    if (!url.pathname.startsWith("/v1/")) throw new PantryError("not_found", "Not found");
+    // The console calls the API under its own path, so the Cloudflare Access application on
+    // /console also signs in its API calls. /mcp and /v1 stay outside Access for agents.
+    const apiPath = url.pathname.startsWith(CONSOLE_API) ? `/v1/${url.pathname.slice(CONSOLE_API.length)}` : url.pathname;
+    if (!apiPath.startsWith("/v1/")) throw new PantryError("not_found", "Not found");
     const access = await authenticate(request, env, ctx);
-    const path = url.pathname.slice("/v1/".length).split("/");
+    const path = apiPath.slice("/v1/".length).split("/");
 
     if (path[0] === "tools") {
       if (path.length === 1 && request.method === "GET") {

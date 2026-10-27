@@ -64,12 +64,15 @@ describe("Cloudflare Access sign-in", () => {
     }
   });
 
-  it("accepts the CF_Authorization cookie only on a same-origin request", async () => {
-    const cookie = `other=1; CF_Authorization=${await jwt({})}`;
-    expect((await whoami({ cookie, "sec-fetch-site": "same-origin" })).json.data).toMatchObject({ signed_in_with: "access" });
-    expect((await whoami({ cookie, origin: "https://pantry.test" })).status).toBe(200);
-    expect((await whoami({ cookie, origin: "https://evil.test", "sec-fetch-site": "cross-site" })).status).toBe(401);
-    expect((await whoami({ cookie })).status).toBe(401);
+  it("serves the console API under /console/api with an Access sign-in", async () => {
+    const response = await SELF.fetch("https://pantry.test/console/api/admin/agents", { headers: { "cf-access-jwt-assertion": await jwt({}) } });
+    expect(response.status).toBe(200);
+    const anonymous = await SELF.fetch("https://pantry.test/console/api/admin/agents");
+    expect(anonymous.status).toBe(401);
+  });
+
+  it("refuses an Access account that is not in OWNER_EMAIL", async () => {
+    expect((await whoami({ "cf-access-jwt-assertion": await jwt({ email: "someone@example.com" }) })).status).toBe(403);
   });
 
   it("lets a bearer token win over the Access header", async () => {

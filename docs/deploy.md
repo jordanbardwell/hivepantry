@@ -23,7 +23,8 @@ The button can read only a public repository.
 | --- | --- | --- |
 | `ADMIN_TOKEN` | secret, necessary | The owner password. It has a minimum of 16 characters. It signs in to `/console` and calls `/v1/admin`. A change to it does not change the agent tokens. |
 | `PANTRY_TZ` | var | The IANA time zone for days and daily totals. The default is `UTC`. A change moves the start of the day for new entries only. |
-| `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD` | var, optional | These enable Google sign-in through Cloudflare Access. Refer to the subsequent section. Keep them empty at the first deploy. |
+| `OWNER_EMAIL` | var, optional | Your email address. Use commas between more than one address. If you set it, the deploy puts Cloudflare Access in front of the console. Refer to the subsequent section. |
+| `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD` | var | The deploy sets these values. Do not change them. |
 | `GIT_SHA` | var | The deploy script sets this value. |
 
 To change a setting, do these steps:
@@ -34,32 +35,32 @@ To change a setting, do these steps:
 
 You can also use this command: `pnpm exec wrangler secret put ADMIN_TOKEN --config wrangler.jsonc`.
 
-## Sign in with Google (Cloudflare Access)
+## Console sign-in with Cloudflare Access
 
-The console can sign you in through [Cloudflare Access](https://developers.cloudflare.com/workers/configuration/cloudflare-access/). Then you do not type the admin password. Access is free for a maximum of 50 users. Access can use Google, GitHub, or a one-time code by email.
+If you set `OWNER_EMAIL`, the deploy puts [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/) in front of the console. Then you do not type the admin password. Access is free for a maximum of 50 users.
 
-`ADMIN_TOKEN` continues to operate. Agents continue to use their tokens.
+The deploy script (`scripts/access-setup.ts`) does these steps on each deploy:
 
-**CAUTION:** Do not put Access in front of `/mcp` or `/v1/tools`. MCP clients cannot complete a browser sign-in. If Access blocks these paths, the agents stop.
+- It makes the Zero Trust organization if it does not exist. The team domain is `<workers.dev subdomain>.cloudflareaccess.com`.
+- It adds the One-time PIN login method if the account does not have a login method.
+- It makes a self-hosted Access application for `<worker>.<subdomain>.workers.dev/console` if it does not exist.
+- It sets the "Owner" policy of the application to the addresses in `OWNER_EMAIL`.
+- It sets `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` on the worker.
 
-1. Put Access in front of the console only. Use one of these two methods:
-   - **Custom domain (recommended).** Add a custom domain to the worker. In Zero Trust, make a self-hosted Access application for `<your domain>/console`. Add a policy that permits your email address.
-   - **workers.dev.** The one-click Access setting of the worker protects all of the `workers.dev` hostname. This setting also blocks the agents. If you use this setting, make a second Access application for the same hostname. Give it the paths `/mcp` and `/v1/`. Give it a **Bypass** policy for everyone. The worker continues to examine each bearer token.
-2. In Zero Trust, go to **Settings**, then to **Authentication**.
-3. Add a login method. One-time PIN does not have configuration steps. For Google, a Google OAuth client is necessary.
-4. Copy the **Application Audience (AUD) Tag** of the console application.
-5. Copy your team domain. The team domain has the format `<team>.cloudflareaccess.com`.
-6. In the worker, set `ACCESS_AUD` to the AUD tag.
-7. In the worker, set `ACCESS_TEAM_DOMAIN` to the team domain.
-8. Open `/console`.
+The Access application covers only `/console`. The console calls its API at `/console/api/`. Access does not cover `/mcp` and `/v1`. Thus, agents continue to use their bearer tokens.
 
-**NOTE:** Cloudflare can move these settings in the dashboard. If you cannot find a setting, refer to the Cloudflare Access documentation.
+With One-time PIN, Cloudflare sends a code to your email address. To sign in with Google, add Google as a login method in Zero Trust. The application accepts all login methods of the account.
 
-The worker verifies the Access JWT. It uses the keys at `https://<team>/cdn-cgi/access/certs` and the RS256 algorithm. It also examines the audience, the issuer, and the expiry time.
+The worker verifies the Access JWT in the `Cf-Access-Jwt-Assertion` header. It uses the keys at `https://<team>/cdn-cgi/access/certs` and the RS256 algorithm. It examines the audience, the issuer, and the expiry time. It also examines that the email is in `OWNER_EMAIL`. `ADMIN_TOKEN` continues to operate.
 
-The worker reads the JWT from the `Cf-Access-Jwt-Assertion` header. Access adds this header only on the paths that it protects. The console also calls `/v1`, which Access does not protect. Thus, the worker also reads the `CF_Authorization` cookie on requests from the same origin.
+**CAUTION:** The deploy uses the API token of Workers Builds. This token must have these permissions:
 
-If the two vars are empty, Access sign-in is off. If a request has a bearer token, the bearer token has priority over an Access sign-in.
+- Access: Apps and Policies (Edit)
+- Access: Organizations, Identity Providers, and Groups (Edit)
+
+If the token does not have these permissions, the deploy shows a warning and continues without Access. The console then uses only `ADMIN_TOKEN`. To add the permissions, edit the build token in the Cloudflare dashboard. Then start the deploy again.
+
+**CAUTION:** Do not enable the one-click Access setting on the worker. That setting covers all of the `workers.dev` hostname, also `/mcp`. MCP clients cannot complete a browser sign-in, so the agents stop.
 
 ## Updates
 

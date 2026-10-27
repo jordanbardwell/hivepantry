@@ -45,19 +45,6 @@ function bytesOf(part: string): Uint8Array {
   return Uint8Array.from(atob(base64 + "=".repeat((4 - (base64.length % 4)) % 4)), (c) => c.charCodeAt(0));
 }
 
-// Access injects the header only on paths it protects. The console page may be the only protected
-// path, so its API calls are signed in by the CF_Authorization cookie, which holds the same JWT. A
-// cookie counts only on a same-origin request, so another site cannot ride it.
-export function accessJwtOf(request: Request): string | null {
-  const header = request.headers.get("cf-access-jwt-assertion");
-  if (header) return header;
-  const sameOrigin =
-    request.headers.get("sec-fetch-site") === "same-origin" || request.headers.get("origin") === new URL(request.url).origin;
-  if (!sameOrigin) return null;
-  const match = /(?:^|;\s*)CF_Authorization=([^;]+)/.exec(request.headers.get("cookie") ?? "");
-  return match?.[1] ?? null;
-}
-
 // Returns the signed-in email, or throws unauthorized.
 export async function verifyAccessJwt(jwt: string, config: { team: string; aud: string }, now = Date.now()): Promise<string> {
   const invalid = () => new PantryError("unauthorized", "Cloudflare Access sign-in is not valid");
