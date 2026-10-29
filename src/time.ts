@@ -11,23 +11,20 @@ export function isTimeZone(zone: string): boolean {
   }
 }
 
-// The day boundary zone: PANTRY_TZ if you set it on the worker, else the zone that the console
-// stored from the browser, else UTC. An unknown PANTRY_TZ is a 500 rather than a log filed on the
-// wrong day.
+// The day boundary zone: the zone that the console stored from the browser at the first sign-in,
+// else PANTRY_TZ, else UTC. An unknown PANTRY_TZ is a 500 rather than a log filed on the wrong day.
 export async function zoneOf(env: Env): Promise<string> {
-  const fixed = env.PANTRY_TZ?.trim();
-  if (fixed) {
-    if (!isTimeZone(fixed)) throw new PantryError("misconfigured", `PANTRY_TZ is not a known time zone: ${fixed}`);
-    return fixed;
-  }
   const row = await env.DB.prepare("SELECT value FROM settings WHERE key = 'time_zone'").first<{ value: string }>();
-  return row && isTimeZone(row.value) ? row.value : "UTC";
+  if (row && isTimeZone(row.value)) return row.value;
+  const fallback = env.PANTRY_TZ?.trim() || "UTC";
+  if (!isTimeZone(fallback)) throw new PantryError("misconfigured", `PANTRY_TZ is not a known time zone: ${fallback}`);
+  return fallback;
 }
 
-// Stores the browser's zone the first time the console signs in. A stored zone or PANTRY_TZ wins,
-// so a sign-in from a laptop in a different zone does not move your days.
+// Stores the browser's zone the first time the console signs in. A stored zone wins, so a sign-in
+// from a laptop in a different zone does not move your days.
 export async function adoptTimeZone(env: Env, zone: unknown): Promise<{ time_zone: string }> {
-  if (typeof zone === "string" && isTimeZone(zone) && !env.PANTRY_TZ?.trim()) {
+  if (typeof zone === "string" && isTimeZone(zone)) {
     await env.DB.prepare("INSERT INTO settings (key, value, updated_at) VALUES ('time_zone', ?, ?) ON CONFLICT (key) DO NOTHING")
       .bind(zone, new Date().toISOString())
       .run();
