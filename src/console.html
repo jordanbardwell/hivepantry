@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="dark">
+<meta name="color-scheme" content="dark light">
 <title>__APP_NAME__ console</title>
 <style nonce="__CSP_NONCE__">
   :root {
@@ -12,8 +12,23 @@
     /* Macro colors: categorical slots 1-3, checked for color-blind separation and contrast on --surface. */
     --protein: #3987e5; --carbs: #d95926; --fat: #199e70;
     --good: #0ca30c; --critical: #e66767;
+    /* Theme colors that are not ink or surface: the white pill, hover and focus borders, glows. */
+    --accent: #fff; --on-accent: #000; --accent-hover: #ddd; --hover-line: #444; --focus-line: #555;
+    --pop: #0e0e0e; --hero: #1b1b1b; --bar: #5a5a5a; --glow: rgba(255,255,255,.07); --hit: rgba(255,255,255,.04);
+    --header: rgba(0,0,0,.82); --shadow: rgba(0,0,0,.6);
     --font: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
     color-scheme: dark;
+  }
+  /* Light mode. Dark is the default; the toggle keeps the choice in this browser. */
+  :root[data-theme="light"] {
+    --bg: #f6f6f4; --surface: #fff; --surface-2: #efefed; --line: #e4e4e2; --line-2: #d2d2cf;
+    --ink: #111; --ink-2: #4d4d4d; --ink-3: #6b6b6b;
+    --protein: #2f7ad6; --carbs: #c94e1d; --fat: #15875f;
+    --good: #0a8a0a; --critical: #c93c3c;
+    --accent: #111; --on-accent: #fff; --accent-hover: #333; --hover-line: #a9a9a6; --focus-line: #8f8f8c;
+    --pop: #fff; --hero: #f1f1ee; --bar: #b9b9b6; --glow: rgba(0,0,0,.05); --hit: rgba(0,0,0,.04);
+    --header: rgba(246,246,244,.86); --shadow: rgba(0,0,0,.14);
+    color-scheme: light;
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.5 var(--font); -webkit-font-smoothing: antialiased; }
@@ -25,47 +40,50 @@
   .error { color: var(--critical); min-height: 1.5em; margin: 8px 0 0; }
   .grow { flex: 1; }
   .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  .logo { flex: none; }
+  .logo { flex: none; color: var(--ink); }
+  .theme-toggle .sun, :root[data-theme="light"] .theme-toggle .moon { display: none; }
+  :root[data-theme="light"] .theme-toggle .sun { display: block; }
+  #signin .theme-toggle { position: absolute; top: 16px; right: 16px; z-index: 1; }
 
   input, select { background: var(--surface); border: 1px solid var(--line-2); border-radius: 999px; padding: 6px 14px; outline: 0; }
-  input:focus, select:focus { border-color: #555; }
+  input:focus, select:focus { border-color: var(--focus-line); }
   input[type="date"] { padding: 5px 12px; }
   input.wide { min-width: 260px; }
   .btn { border: 1px solid var(--line-2); border-radius: 999px; padding: 5px 14px; color: var(--ink-2); font-size: 12px; white-space: nowrap; }
-  .btn:hover:not(:disabled) { color: var(--ink); border-color: #444; }
+  .btn:hover:not(:disabled) { color: var(--ink); border-color: var(--hover-line); }
   .btn:disabled { opacity: .4; cursor: default; }
-  .btn.w { background: #fff; color: #000; border-color: #fff; font-weight: 500; }
-  .btn.w:hover { background: #ddd; color: #000; }
+  .btn.w { background: var(--accent); color: var(--on-accent); border-color: var(--accent); font-weight: 500; }
+  .btn.w:hover { background: var(--accent-hover); color: var(--on-accent); }
   .btn.danger { color: var(--critical); }
   .icon-btn { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line-2); color: var(--ink-2); display: inline-grid; place-items: center; }
-  .icon-btn:hover:not(:disabled) { color: var(--ink); border-color: #444; }
+  .icon-btn:hover:not(:disabled) { color: var(--ink); border-color: var(--hover-line); }
   .icon-btn:disabled { opacity: .35; cursor: default; }
 
   /* Sign-in */
   #signin { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; position: relative; overflow: hidden; }
-  #signin::before { content: ""; position: absolute; left: 50%; bottom: -420px; width: 1200px; height: 640px; transform: translateX(-50%); background: radial-gradient(closest-side, rgba(255,255,255,.07), transparent 70%); pointer-events: none; }
+  #signin::before { content: ""; position: absolute; left: 50%; bottom: -420px; width: 1200px; height: 640px; transform: translateX(-50%); background: radial-gradient(closest-side, var(--glow), transparent 70%); pointer-events: none; }
   .wordmark { display: flex; align-items: center; gap: 14px; font-size: 36px; font-weight: 600; letter-spacing: -0.03em; }
   .signin-box { margin-top: 28px; width: min(480px, 100%); background: var(--surface); border: 1px solid var(--line-2); border-radius: 28px; padding: 8px 8px 8px 20px; display: flex; gap: 8px; align-items: center; }
   .signin-box input { flex: 1; border: 0; background: none; padding: 8px 0; font-size: 15px; }
   #signin p { max-width: 480px; text-align: center; }
 
   /* Header */
-  header { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 18px; padding: 10px 24px; background: rgba(0,0,0,.82); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }
+  header { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 18px; padding: 10px 24px; background: var(--header); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }
   .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 15px; }
   .tabs { display: flex; gap: 2px; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 3px; }
   .tabs button { padding: 5px 14px; border-radius: 999px; color: var(--ink-2); }
-  .tabs button[aria-current="page"] { background: #fff; color: #000; }
+  .tabs button[aria-current="page"] { background: var(--accent); color: var(--on-accent); }
   .tabs button:not([aria-current="page"]):hover { color: var(--ink); }
   .who { color: var(--ink-3); font-size: 12px; }
 
   /* Command box: search the food library and log from it */
   .cmd { position: relative; width: 380px; }
   .cmd-field { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line-2); border-radius: 999px; padding: 0 8px 0 14px; background: var(--surface); color: var(--ink-3); }
-  .cmd-field:focus-within { border-color: #555; }
+  .cmd-field:focus-within { border-color: var(--focus-line); }
   .cmd-field input { flex: 1; border: 0; background: none; padding: 7px 0; min-width: 0; }
   .cmd-field input::placeholder { color: var(--ink-3); }
   kbd { font: 11px var(--mono); border: 1px solid var(--line-2); border-radius: 5px; padding: 0 5px; color: var(--ink-3); }
-  .pop { position: absolute; top: calc(100% + 8px); left: 0; right: 0; background: #0e0e0e; border: 1px solid var(--line-2); border-radius: 20px; padding: 6px; box-shadow: 0 24px 60px rgba(0,0,0,.7); max-height: 70vh; overflow-y: auto; }
+  .pop { position: absolute; top: calc(100% + 8px); left: 0; right: 0; background: var(--pop); border: 1px solid var(--line-2); border-radius: 20px; padding: 6px; box-shadow: 0 24px 60px var(--shadow); max-height: 70vh; overflow-y: auto; }
   .pop .hd { font-size: 11px; color: var(--ink-3); padding: 6px 10px 4px; }
   .res { display: flex; width: 100%; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; text-align: left; }
   .res:hover, .res.on { background: var(--surface-2); }
@@ -93,7 +111,7 @@
   .empty { color: var(--ink-3); padding: 18px 0; text-align: center; }
 
   /* Hero number */
-  .hero { background: radial-gradient(120% 100% at 0% 0%, #1b1b1b 0%, var(--surface) 55%); }
+  .hero { background: radial-gradient(120% 100% at 0% 0%, var(--hero) 0%, var(--surface) 55%); }
   .hero .big { font-size: 56px; font-weight: 600; letter-spacing: -0.04em; line-height: 1; }
   .hero .big.over { color: var(--critical); }
   .hero .sub { color: var(--ink-3); font-size: 14px; margin-top: 8px; }
@@ -122,18 +140,19 @@
   svg.chart { width: 100%; display: block; overflow: visible; touch-action: pan-y; }
   svg text { fill: var(--ink-3); font-size: 11px; font-family: var(--font); }
   svg .grid-line { stroke: var(--line); }
-  svg .bar { fill: #5a5a5a; }
+  svg .bar { fill: var(--bar); }
   svg .bar.sel { fill: var(--ink); }
   svg .bar.over { fill: var(--critical); }
   svg text.t-over { fill: var(--critical); }
   svg .goal { stroke: var(--ink); stroke-dasharray: 4 4; pointer-events: none; }
   svg text.t-goal { fill: var(--ink-2); }
   svg .hit { fill: transparent; cursor: pointer; }
-  svg .hit:hover { fill: rgba(255,255,255,.04); }
+  svg .hit:hover { fill: var(--hit); }
   svg .wline { fill: none; stroke: var(--ink); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
   svg .warea { fill: url(#wfill); }
   svg .wdot { fill: var(--ink); stroke: var(--surface); stroke-width: 2; }
-  svg .cross { stroke: #444; }
+  svg .cross { stroke: var(--hover-line); }
+  svg .wstop { stop-color: var(--ink); }
   svg text.t-ink { fill: var(--ink); }
   .legend { display: inline-flex; align-items: center; gap: 6px; }
 
@@ -159,7 +178,7 @@
   .status { display: inline-flex; align-items: center; gap: 8px; }
   .status i { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3); }
   .status i.on { background: var(--good); }
-  .token-panel { border-color: #555; scroll-margin-top: 140px; }
+  .token-panel { border-color: var(--focus-line); scroll-margin-top: 140px; }
   .tp-grid { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 10px 14px; align-items: center; margin: 14px 0; }
   .tp-grid .k { color: var(--ink-3); font-size: 12px; }
   .tp-actions { margin-bottom: 12px; }
@@ -169,13 +188,13 @@
 
   code, pre { font-family: var(--mono); font-size: 12px; }
   pre { background: var(--bg); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; color: var(--ink-2); margin: 0 0 16px; }
-  .token { background: var(--bg); border: 1px solid #555; border-radius: 14px; padding: 12px 14px; word-break: break-all; font-family: var(--mono); }
+  .token { background: var(--bg); border: 1px solid var(--focus-line); border-radius: 14px; padding: 12px 14px; word-break: break-all; font-family: var(--mono); }
   .connect h2 { margin-top: 4px; }
   .connect p { color: var(--ink-2); margin: 0 0 12px; }
 
-  #tip { position: fixed; z-index: 50; pointer-events: none; background: #fff; color: #000; font-size: 12px; padding: 6px 10px; border-radius: 10px; opacity: 0; transition: opacity .08s; line-height: 1.4; white-space: pre-line; box-shadow: 0 8px 24px rgba(0,0,0,.5); max-width: 260px; }
-  #toast { position: fixed; z-index: 60; left: 50%; bottom: 24px; transform: translateX(-50%); background: #fff; color: #000; border-radius: 999px; padding: 8px 18px; font-size: 13px; box-shadow: 0 12px 40px rgba(0,0,0,.6); max-width: min(640px, 92vw); }
-  #toast.bad { background: var(--critical); color: #000; }
+  #tip { position: fixed; z-index: 50; pointer-events: none; background: var(--accent); color: var(--on-accent); font-size: 12px; padding: 6px 10px; border-radius: 10px; opacity: 0; transition: opacity .08s; line-height: 1.4; white-space: pre-line; box-shadow: 0 8px 24px var(--shadow); max-width: 260px; }
+  #toast { position: fixed; z-index: 60; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--accent); color: var(--on-accent); border-radius: 999px; padding: 8px 18px; font-size: 13px; box-shadow: 0 12px 40px var(--shadow); max-width: min(640px, 92vw); }
+  #toast.bad { background: var(--critical); color: #fff; }
 
   /* Narrow screens and touch screens. These come last so that they win over the rules above. */
   @media (max-width: 1080px) { .c3, .c4, .c5 { grid-column: span 6; } .c7, .c8 { grid-column: span 12; } .cmd { width: 260px; } }
@@ -190,7 +209,7 @@
     header > .grow { order: 4; flex-basis: 100%; height: 0; }
     .cmd { order: 5; flex: 1; width: auto; min-width: 0; }
     .cmd-field kbd { display: none; }
-    #signout { order: 6; }
+    header .theme-toggle, #signout { order: 6; }
     .card h2 .r.wrap { margin-left: 0; flex-basis: 100%; }
     .card h2 { flex-wrap: wrap; }
     .x { opacity: 1; }
@@ -229,13 +248,15 @@
     .res { padding: 12px 10px; }
   }
 </style>
+<script nonce="__CSP_NONCE__">try { if (localStorage.getItem("pantry-theme") === "light") document.documentElement.dataset.theme = "light"; } catch {}</script>
 </head>
 <body>
 <svg width="0" height="0" aria-hidden="true">
-  <symbol id="mark" viewBox="0 0 32 32"><path d="M16 2 28 9v14l-12 7-12-7V9z" fill="none" stroke="#fff" stroke-width="2"/><path d="M9 21 23 11" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></symbol>
+  <symbol id="mark" viewBox="0 0 32 32"><path d="M16 2 28 9v14l-12 7-12-7V9z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9 21 23 11" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
 </svg>
 
 <div id="signin">
+  <button class="icon-btn theme-toggle" type="button" data-theme-toggle aria-label="Switch to light mode" title="Switch to light mode"><svg class="moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><svg class="sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
   <div class="wordmark"><svg class="logo" width="42" height="42"><use href="#mark"/></svg>__APP_NAME__</div>
   <div class="signin-box">
     <input id="admin-token" type="password" autocomplete="current-password" placeholder="Admin token" aria-label="Admin token">
@@ -263,6 +284,7 @@
       <div class="pop" id="cmd-pop" hidden></div>
     </div>
     <span class="who" id="who"></span>
+    <button class="icon-btn theme-toggle" type="button" data-theme-toggle aria-label="Switch to light mode" title="Switch to light mode"><svg class="moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><svg class="sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
     <button class="btn" id="signout">Sign out</button>
   </header>
 
@@ -665,8 +687,8 @@
     svgText(svg, W - R, H - 8, dateLabel(w.to, { month: "short", day: "numeric" }), { "text-anchor": "end" });
     const defs = svgEl("defs", {}, svg);
     const grad = svgEl("linearGradient", { id: "wfill", x1: 0, x2: 0, y1: 0, y2: 1 }, defs);
-    svgEl("stop", { offset: 0, "stop-color": "#fff", "stop-opacity": 0.12 }, grad);
-    svgEl("stop", { offset: 1, "stop-color": "#fff", "stop-opacity": 0 }, grad);
+    svgEl("stop", { offset: 0, class: "wstop", "stop-opacity": 0.12 }, grad);
+    svgEl("stop", { offset: 1, class: "wstop", "stop-opacity": 0 }, grad);
     const pts = w.weights.map((p) => [x(p.date), y(p.weight_kg)]);
     const line = pts.map(([px, py], i) => `${i ? "L" : "M"}${px.toFixed(1)},${py.toFixed(1)}`).join("");
     svgEl("path", { class: "warea", d: `${line}L${pts[pts.length - 1][0]},${y(lo)}L${pts[0][0]},${y(lo)}Z` }, svg);
@@ -1008,6 +1030,19 @@
   $("signin-btn").addEventListener("click", signIn);
   $("admin-token").addEventListener("keydown", (e) => e.key === "Enter" && signIn());
   $("signout").addEventListener("click", signOut);
+  // Dark is the default. The choice stays in this browser; the head script applies it before paint.
+  const themeLabels = () => {
+    const text = document.documentElement.dataset.theme === "light" ? "Switch to dark mode" : "Switch to light mode";
+    document.querySelectorAll("[data-theme-toggle]").forEach((b) => { b.setAttribute("aria-label", text); b.title = text; });
+  };
+  document.querySelectorAll("[data-theme-toggle]").forEach((b) => b.addEventListener("click", () => {
+    const light = document.documentElement.dataset.theme !== "light";
+    if (light) document.documentElement.dataset.theme = "light";
+    else delete document.documentElement.dataset.theme;
+    try { localStorage.setItem("pantry-theme", light ? "light" : "dark"); } catch {}
+    themeLabels();
+  }));
+  themeLabels();
   document.querySelectorAll(".tabs button").forEach((b) => b.addEventListener("click", () => show(b.dataset.view)));
   $("day").addEventListener("change", () => $("day").value && openDay($("day").value));
   $("prev-day").addEventListener("click", () => openDay(addDays(state.day, -1)));

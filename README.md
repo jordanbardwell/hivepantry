@@ -13,7 +13,7 @@ HivePantry is a log of calories and macronutrients for AI agents. Agents record 
 - You can set daily goals for calories, protein, carbohydrates, fat, fiber, sugar, and sodium. A goal change does not change the goals of earlier days.
 - Agents show daily totals and trends for a period. Agents also log your body weight in kg or lb.
 - Each agent has its own token. A token has read access, or read and write access. Each entry shows the agent that logged it.
-- The web console shows the current day, the calories for each day, and your weight. You can find a saved food or recipe in the console and log it. You make and revoke agent tokens in the console.
+- The web console shows the current day, the calories for each day, and your weight. You can find a saved food or recipe in the console and log it. You make and revoke agent tokens in the console. The console has a dark mode and a light mode. Dark mode is the default.
 
 ## Deploy
 
