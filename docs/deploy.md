@@ -21,7 +21,7 @@ The button can read only a public repository.
 
 | Name | Type | Purpose |
 | --- | --- | --- |
-| `ADMIN_TOKEN` | secret, necessary | The owner password. It has a minimum of 16 characters. It signs in to `/console` and calls `/v1/admin`. A change to it does not change the agent tokens. The deploy form asks only for this setting. |
+| `ADMIN_TOKEN` | secret, necessary | The owner password. It has a minimum of 8 characters. It signs in to `/console` and calls `/v1/admin`. A change to it does not change the agent tokens. The deploy form asks only for this setting. |
 | `PANTRY_TZ` | var | The IANA time zone for days and daily totals before the first console sign-in. The default is `UTC`. At the first sign-in, the console stores the time zone of your browser. The stored time zone has priority over `PANTRY_TZ`. |
 | `OWNER_EMAIL` | build variable, optional | Your email address. Use commas between more than one address. If you set it, the deploy puts Cloudflare Access in front of the console. Refer to the subsequent section. |
 | `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD` | var | The deploy sets these values. Do not change them. |

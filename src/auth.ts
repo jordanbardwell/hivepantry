@@ -14,7 +14,7 @@ export type Access = {
 };
 
 export const ADMIN_AGENT_ID = "owner";
-export const MIN_ADMIN_TOKEN_LENGTH = 16;
+export const MIN_ADMIN_TOKEN_LENGTH = 8;
 
 type TokenRow = {
   token_id: string;
