@@ -22,7 +22,7 @@ The button can read only a public repository.
 | Name | Type | Purpose |
 | --- | --- | --- |
 | `ADMIN_TOKEN` | secret, necessary | The owner password. It has a minimum of 16 characters. It signs in to `/console` and calls `/v1/admin`. A change to it does not change the agent tokens. The deploy form asks only for this setting. |
-| `PANTRY_TZ` | var, optional | The IANA time zone for days and daily totals. If you do not set it, the worker uses the time zone of your browser at the first console sign-in. If it has no time zone, it uses `UTC`. `PANTRY_TZ` has priority over the stored time zone. A change moves the start of the day for new entries only. |
+| `PANTRY_TZ` | var | The IANA time zone for days and daily totals before the first console sign-in. The default is `UTC`. At the first sign-in, the console stores the time zone of your browser. The stored time zone has priority over `PANTRY_TZ`. |
 | `OWNER_EMAIL` | build variable, optional | Your email address. Use commas between more than one address. If you set it, the deploy puts Cloudflare Access in front of the console. Refer to the subsequent section. |
 | `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD` | var | The deploy sets these values. Do not change them. |
 | `GIT_SHA` | var | The deploy script sets this value. |
@@ -34,8 +34,6 @@ To change a setting, do these steps:
 3. Change the value.
 
 You can also use this command: `pnpm exec wrangler secret put ADMIN_TOKEN --config wrangler.jsonc`.
-
-`wrangler.jsonc` sets `keep_vars`. Thus, a deploy does not remove a var that you set in the dashboard.
 
 ## Console sign-in with Cloudflare Access
 

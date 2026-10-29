@@ -10,9 +10,12 @@
   "observability": { "enabled": true },
   "workers_dev": true,
   "rules": [{ "type": "Text", "globs": ["**/*.html", "**/*.md"], "fallthrough": true }],
-  // No vars, so the deploy form asks only for ADMIN_TOKEN. The console stores the time zone in D1.
-  // keep_vars keeps vars that you set in the dashboard (PANTRY_TZ, OWNER_EMAIL) over a deploy.
-  "keep_vars": true,
+  // Each var has a default, so the deploy form needs only ADMIN_TOKEN. The deploy script sets
+  // GIT_SHA and, when OWNER_EMAIL is a build variable, the Cloudflare Access vars. PANTRY_TZ is
+  // the time zone until the first console sign-in, which stores the browser's zone.
+  "vars": {
+    "PANTRY_TZ": "UTC"
+  },
   "secrets": { "required": ["ADMIN_TOKEN"] },
   // Limits ADMIN_TOKEN tries per IP. The namespace id is a number of our choice, not a resource
   // id, so a deploy needs nothing made first.

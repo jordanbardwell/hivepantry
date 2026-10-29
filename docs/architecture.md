@@ -94,7 +94,7 @@ Only `save_recipe` can change the nutrients of a recipe. `save_food` returns 409
 
 ### Days and time zone
 
-The time zone is an IANA time zone. At the first sign-in, the console sends the time zone of the browser. The worker keeps it in the `settings` table. A subsequent sign-in does not change it. The optional var `PANTRY_TZ` has priority over it. If there is no time zone, the worker uses `UTC`. The `local_date` of an entry is the day in that time zone.
+The time zone is an IANA time zone. At the first sign-in, the console sends the time zone of the browser. The worker keeps it in the `settings` table. A subsequent sign-in does not change it. Before the first sign-in, the worker uses the var `PANTRY_TZ`. Its default is `UTC`. The `local_date` of an entry is the day in that time zone.
 
 A caller can send one of these values:
 
@@ -152,7 +152,7 @@ Each reply is `{ ok: true, data }` or `{ ok: false, error: { code, message, issu
 
 1. The **Deploy to Cloudflare** button copies the repository into the GitHub account of the owner. It connects the copy to Workers Builds.
 2. The button reads `wrangler.jsonc`. The file names the D1 database but does not contain a `database_id`. Thus, the deploy makes the database.
-3. `package.json` `cloudflare.bindings` gives the help text on the form for `ADMIN_TOKEN`. `secrets.required` and `.dev.vars.example` make `ADMIN_TOKEN` necessary. `wrangler.jsonc` has no `vars`, so the form asks for no other setting.
+3. `package.json` `cloudflare.bindings` gives the help text on the form for `ADMIN_TOKEN`. `secrets.required` and `.dev.vars.example` make `ADMIN_TOKEN` necessary. Each var in `wrangler.jsonc` has a default, so the form needs no other setting.
 4. Workers Builds runs `pnpm run deploy` (`scripts/deploy.ts`). The script applies the migrations if the database exists. Then it runs `wrangler deploy` with `GIT_SHA`. Then it applies the migrations again, because the first deploy makes the database during `wrangler deploy`.
 5. `.github/workflows/sync-upstream.yml` moves the `main` of the copy forward to this repository one time each day. It operates only if the owner of the copy sets the repository variable `SYNC_UPSTREAM` to `true`. An update runs code from this repository with the data of the copy. Thus, the owner of the copy must decide to accept updates. The push starts Workers Builds. Workers Builds applies new migrations before the new code starts.
 
