@@ -25,7 +25,9 @@ jobs:
         run: pnpm typecheck
       - name: Test suite
         run: pnpm test
+      # Deploy to Cloudflare writes the database_id into the copy that it makes, so check only here.
       - name: Tracked config holds no resource ids
+        if: github.repository == 'jordanbardwell/hivepantry'
         run: |
           if grep -q '"database_id"' wrangler.jsonc; then echo "wrangler.jsonc must not name a database_id; Deploy to Cloudflare creates the database"; exit 1; fi
           grep -q '"workers_dev": true' wrangler.jsonc

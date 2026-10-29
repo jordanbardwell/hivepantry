@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CloudflareApiError, ensureConsoleAccess, liveAccessVars, ownerEmails, type CfFetch } from "../scripts/access-setup.ts";
+import { CloudflareApiError, ensureConsoleAccess, ensureWorkersDev, liveAccessVars, ownerEmails, type CfFetch } from "../scripts/access-setup.ts";
 
 // An in-memory stand-in for the parts of the Cloudflare API that the deploy uses.
 function fakeApi(start: { org?: boolean; idps?: number } = {}) {
@@ -95,5 +95,36 @@ describe("console Access setup", () => {
   it("parses owner emails", () => {
     expect(ownerEmails(" Me@Example.com, bad, you@example.com ,")).toEqual(["me@example.com", "you@example.com"]);
     expect(ownerEmails(undefined)).toEqual([]);
+  });
+});
+
+describe("ensureWorkersDev", () => {
+  function api(enabled: boolean) {
+    const calls: string[] = [];
+    const cf: CfFetch = async (path, init = {}) => {
+      calls.push(`${init.method ?? "GET"} ${path}`);
+      if (path === "/accounts/acc/workers/subdomain") return { subdomain: "jordan" };
+      if (path === "/accounts/acc/workers/scripts/hivepantry/subdomain") {
+        if (init.method === "POST") {
+          expect(init.body).toEqual({ enabled: true, previews_enabled: true });
+          enabled = true;
+        }
+        return { enabled, previews_enabled: enabled };
+      }
+      throw new Error(`unexpected ${path}`);
+    };
+    return { cf, calls };
+  }
+
+  it("turns on the workers.dev address when it is off", async () => {
+    const { cf, calls } = api(false);
+    expect(await ensureWorkersDev(cf, "acc", "hivepantry")).toBe("hivepantry.jordan.workers.dev");
+    expect(calls).toContain("POST /accounts/acc/workers/scripts/hivepantry/subdomain");
+  });
+
+  it("changes nothing when it is on", async () => {
+    const { cf, calls } = api(true);
+    await ensureWorkersDev(cf, "acc", "hivepantry");
+    expect(calls.some((c) => c.startsWith("POST"))).toBe(false);
   });
 });

@@ -4,7 +4,7 @@
 // deploy, where `wrangler deploy` has just created the database. Each step is safe to repeat.
 import { execFileSync, spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { cloudflareApi, ensureConsoleAccess, liveAccessVars, ownerEmails } from "./access-setup.ts";
+import { cloudflareApi, ensureConsoleAccess, ensureWorkersDev, liveAccessVars, ownerEmails } from "./access-setup.ts";
 
 const configPath = process.env.PANTRY_CONFIG ?? "wrangler.jsonc";
 
@@ -77,3 +77,24 @@ if (emails.length && !apiToken) {
 }
 must(["deploy", ...vars]);
 must(["d1", "migrations", "apply", database, "--remote"]);
+
+// workers_dev in wrangler.jsonc does not always turn on the workers.dev address for a worker that
+// the Deploy to Cloudflare flow made, and the console and /mcp live there. So turn it on with the
+// API. Without it the copy cannot be reached, so a failure fails the build.
+if (apiToken) {
+  try {
+    const cf = cloudflareApi(apiToken);
+    let accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+    if (!accountId) {
+      const accounts = (await cf("/accounts")) as { id: string }[];
+      if (accounts.length !== 1) throw new Error("Set CLOUDFLARE_ACCOUNT_ID: the token can see more than one account");
+      accountId = accounts[0]!.id;
+    }
+    const host = await ensureWorkersDev(cf, accountId, workerName);
+    console.log(`The console is at https://${host}/console and MCP is at https://${host}/mcp.`);
+  } catch (err) {
+    console.error(`Could not turn on the workers.dev address. ${err instanceof Error ? err.message : String(err)}`);
+    console.error("In the Cloudflare dashboard, open the worker, go to Settings > Domains & Routes, and enable workers.dev.");
+    process.exit(1);
+  }
+}

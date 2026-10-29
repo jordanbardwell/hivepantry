@@ -11,7 +11,7 @@ The **Deploy to Cloudflare** button in the [README](../README.md) makes a new co
 - It asks for `ADMIN_TOKEN` only.
 - It deploys the worker with Workers Builds. Workers Builds runs `pnpm run deploy`.
 
-The deploy script is `scripts/deploy.ts`. The script applies the D1 migrations before the new code starts. Then the script deploys the worker with the commit as `GIT_SHA`. Then the script applies the migrations again for a first deploy. You can repeat each step safely.
+The deploy script is `scripts/deploy.ts`. The script applies the D1 migrations before the new code starts. Then the script deploys the worker with the commit as `GIT_SHA`. Then the script applies the migrations again for a first deploy. Then the script turns on the `workers.dev` address of the worker with the Cloudflare API. If it cannot turn on the address, the build fails. You can repeat each step safely.
 
 To examine a deploy, send `GET /v1/health`. The reply shows the `git_sha` of the deploy.
 

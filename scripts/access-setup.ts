@@ -112,3 +112,15 @@ export async function liveAccessVars(cf: CfFetch, accountId: string, workerName:
   const aud = value("ACCESS_AUD");
   return team && aud ? ["--var", `ACCESS_TEAM_DOMAIN:${team}`, "--var", `ACCESS_AUD:${aud}`] : [];
 }
+
+// Turns on <worker>.<subdomain>.workers.dev for the worker and returns that host. It is safe to
+// repeat. The account must have a workers.dev subdomain; each account gets one with Workers.
+export async function ensureWorkersDev(cf: CfFetch, accountId: string, workerName: string): Promise<string> {
+  const account = `/accounts/${accountId}`;
+  const { subdomain } = (await cf(`${account}/workers/subdomain`)) as { subdomain: string };
+  if (!subdomain) throw new Error("The account has no workers.dev subdomain. Open Workers & Pages in the dashboard once to make it.");
+  const script = `${account}/workers/scripts/${encodeURIComponent(workerName)}/subdomain`;
+  const current = (await cf(script)) as { enabled?: boolean } | null;
+  if (!current?.enabled) await cf(script, { method: "POST", body: { enabled: true, previews_enabled: true } });
+  return `${workerName}.${subdomain}.workers.dev`;
+}
