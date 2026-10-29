@@ -114,7 +114,7 @@
   .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 12px; }
   .card { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 18px; position: relative; min-width: 0; }
   .card h2 { font-size: 13px; font-weight: 500; color: var(--ink); min-height: 20px; display: flex; align-items: center; gap: 8px; margin: 0 0 12px; }
-  .card h2 .r { margin-left: auto; color: var(--ink-3); font-weight: 400; font-size: 12px; display: inline-flex; align-items: center; }
+  .card h2 .r { margin-left: auto; color: var(--ink-3); font-weight: 400; font-size: 12px; display: inline-flex; align-items: center; gap: 10px; }
   .card h2 .btn { margin: -6px 0; }
   .c3 { grid-column: span 3; } .c4 { grid-column: span 4; } .c5 { grid-column: span 5; } .c7 { grid-column: span 7; } .c8 { grid-column: span 8; } .c12 { grid-column: span 12; }
   .empty { color: var(--ink-3); padding: 18px 0; text-align: center; }
@@ -170,7 +170,10 @@
 
   /* Entry feed */
   .feed-card { display: flex; flex-direction: column; }
-  .feed { flex: 1 1 0; min-height: 200px; overflow-y: auto; overflow-x: hidden; margin: 0 -6px; padding: 0 6px; }
+  /* The feed does not scroll by itself: a scroll area inside the page catches a trackpad swipe and
+     stops the page. It shows what fits, and Show all opens the rest. */
+  .feed { flex: 1 1 0; min-height: 200px; overflow: hidden; margin: 0 -6px; padding: 0 6px; }
+  .feed.open { flex: none; max-height: none !important; }
   .feed.more { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent); }
   .meal { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .06em; padding: 12px 0 4px; }
   .meal:first-child { padding-top: 0; }
@@ -356,7 +359,7 @@
         </section>
 
         <section class="card c4 feed-card">
-          <h2><span id="entries-title">Today</span> <span class="r" id="entries-count"></span></h2>
+          <h2><span id="entries-title">Today</span> <span class="r"><span id="entries-count"></span><button class="btn" id="entries-more" type="button" hidden>Show all</button></span></h2>
           <div class="feed" id="entries"></div>
         </section>
 
@@ -699,16 +702,21 @@
             <span class="num" data-tip="${esc(`${e.name}\nP ${fmt(e.totals.protein_g)} g · C ${fmt(e.totals.carbs_g)} g · F ${fmt(e.totals.fat_g)} g`)}">${whole(e.totals.calories)}</span>
             <button class="x" data-delete-entry="${esc(e.id)}" aria-label="Delete ${esc(e.name)}">×</button></div>`).join("")).join("")
       : `<div class="empty">There are no entries for this day. Search a food above to log it.</div>`;
-    $("entries").scrollTop = 0;
     feedFade();
   }
 
-  // The feed fades at the bottom while there are more entries to scroll to.
+  // The feed fades at the bottom while entries are hidden. Show all opens the feed to its full height.
   const feedFade = () => {
-    const f = $("entries");
-    f.classList.toggle("more", f.scrollHeight - f.scrollTop - f.clientHeight > 2);
+    const f = $("entries"), open = f.classList.contains("open");
+    const hidden = !open && f.scrollHeight - f.clientHeight > 2;
+    f.classList.toggle("more", hidden);
+    $("entries-more").hidden = !hidden && !open;
+    $("entries-more").textContent = open ? "Show less" : "Show all";
   };
-  $("entries").addEventListener("scroll", feedFade, { passive: true });
+  $("entries-more").addEventListener("click", () => {
+    $("entries").classList.toggle("open");
+    feedFade();
+  });
 
   function renderWeight(w) {
     const svg = $("wt");
