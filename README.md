@@ -19,17 +19,15 @@ HivePantry is a log of calories and macronutrients for AI agents. Agents record 
 
 1. Click **Deploy to Cloudflare** above.
 2. Sign in to Cloudflare and GitHub.
-3. Type an admin password in `ADMIN_TOKEN`. Use a minimum of 16 characters.
+3. Type an admin password in `ADMIN_TOKEN`. Use a minimum of 16 characters. This is the only setting.
 4. Keep the password in a safe location.
-5. Type your time zone in `PANTRY_TZ`, for example `America/New_York`. If you are not sure, keep `UTC`.
-6. Optional: type your email address in `OWNER_EMAIL`. Then you sign in to the console with a code that Cloudflare sends to this address.
-7. Wait until the deploy is complete.
-8. Open `https://<worker>.<subdomain>.workers.dev/console`.
-9. Sign in with the code that Cloudflare sends to your email address. If you did not set `OWNER_EMAIL`, sign in with your `ADMIN_TOKEN`.
+5. Click **Create and deploy**. Wait until the deploy is complete.
+6. Open `https://<worker>.<subdomain>.workers.dev/console`.
+7. Sign in with your `ADMIN_TOKEN`.
 
-The deploy makes the D1 database and applies its schema. Your copy does not receive updates from this repository automatically. To receive them, set the repository variable `SYNC_UPSTREAM` to `true` in your copy. Refer to [docs/deploy.md](docs/deploy.md#updates).
+The console uses the time zone of your browser at the first sign-in. The deploy makes the D1 database and applies its schema. Your copy does not receive updates from this repository automatically. To receive them, set the repository variable `SYNC_UPSTREAM` to `true` in your copy. Refer to [docs/deploy.md](docs/deploy.md#updates).
 
-If you set `OWNER_EMAIL`, the deploy puts Cloudflare Access in front of the console only. Agents continue to use their tokens on `/mcp`. The Workers Builds token must have two Access permissions for this step. Refer to [docs/deploy.md](docs/deploy.md#console-sign-in-with-cloudflare-access).
+Optional: to sign in to the console with a code that Cloudflare sends to your email address, refer to [docs/deploy.md](docs/deploy.md#console-sign-in-with-cloudflare-access).
 
 For updates and a manual deploy, refer to [docs/deploy.md](docs/deploy.md).
 

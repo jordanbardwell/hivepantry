@@ -5,6 +5,7 @@ import { CONSOLE_PATH, consoleResponse } from "./console";
 import { errorBody, PantryError, toPantryError } from "./errors";
 import { mcpHandler } from "./mcp";
 import { mintSchema } from "./schemas";
+import { adoptTimeZone } from "./time";
 import { callTool, TOOLS, TOOLS_BY_NAME } from "./tools";
 
 const MAX_BODY_BYTES = 64 * 1024;
@@ -92,6 +93,7 @@ export async function handleFetch(request: Request, env: Env, ctx: ExecutionCont
       }
       if (route === "DELETE tokens" && path.length === 3) return ok(await revokeToken(env, decodeURIComponent(path[2]!)));
       if (route === "DELETE agents" && path.length === 3) return ok(await disableAgent(env, decodeURIComponent(path[2]!)));
+      if (route === "POST time-zone" && path.length === 2) return ok(await adoptTimeZone(env, ((await readJson(request)) as { time_zone?: unknown }).time_zone));
     }
 
     throw new PantryError("not_found", "Not found");

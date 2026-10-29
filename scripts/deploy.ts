@@ -8,7 +8,7 @@ import { cloudflareApi, ensureConsoleAccess, liveAccessVars, ownerEmails } from 
 
 const configPath = process.env.PANTRY_CONFIG ?? "wrangler.jsonc";
 
-type Config = { name?: string; vars?: Record<string, string>; d1_databases?: { database_name: string }[] };
+type Config = { name?: string; d1_databases?: { database_name: string }[] };
 
 const config = JSON.parse(
   readFileSync(configPath, "utf8")
@@ -46,7 +46,8 @@ if (!sha) {
 }
 // Access is an addition to ADMIN_TOKEN, so a failure here warns and the deploy goes on.
 const vars: string[] = sha ? ["--var", `GIT_SHA:${sha}`] : [];
-const emails = ownerEmails(process.env.OWNER_EMAIL ?? config.vars?.OWNER_EMAIL);
+// OWNER_EMAIL is optional and is not on the deploy form. Set it as a Workers Builds variable.
+const emails = ownerEmails(process.env.OWNER_EMAIL);
 const apiToken = process.env.CLOUDFLARE_API_TOKEN;
 const workerName = config.name ?? "hivepantry";
 if (emails.length && !apiToken) {
@@ -61,7 +62,7 @@ if (emails.length && !apiToken) {
       accountId = accounts[0]!.id;
     }
     const access = await ensureConsoleAccess(cf, { accountId, workerName, appName: "HivePantry", emails });
-    vars.push("--var", `ACCESS_TEAM_DOMAIN:${access.team}`, "--var", `ACCESS_AUD:${access.aud}`);
+    vars.push("--var", `ACCESS_TEAM_DOMAIN:${access.team}`, "--var", `ACCESS_AUD:${access.aud}`, "--var", `OWNER_EMAIL:${emails.join(",")}`);
     console.log(`Cloudflare Access protects https://${access.host}/console for ${emails.join(", ")}.`);
   } catch (err) {
     // Without the two vars the deploy would turn off the Access sign-in that an earlier deploy

@@ -10,15 +10,9 @@
   "observability": { "enabled": true },
   "workers_dev": true,
   "rules": [{ "type": "Text", "globs": ["**/*.html", "**/*.md"], "fallthrough": true }],
-  "vars": {
-    "PANTRY_TZ": "UTC",
-    // Email addresses (comma-separated) that may sign in to the console through Cloudflare Access.
-    // When set, the deploy makes the Access application and sets the two ACCESS_ vars itself.
-    "OWNER_EMAIL": "",
-    "ACCESS_TEAM_DOMAIN": "",
-    "ACCESS_AUD": "",
-    "GIT_SHA": ""
-  },
+  // No vars, so the deploy form asks only for ADMIN_TOKEN. The console stores the time zone in D1.
+  // keep_vars keeps vars that you set in the dashboard (PANTRY_TZ, OWNER_EMAIL) over a deploy.
+  "keep_vars": true,
   "secrets": { "required": ["ADMIN_TOKEN"] },
   // Limits ADMIN_TOKEN tries per IP. The namespace id is a number of our choice, not a resource
   // id, so a deploy needs nothing made first.

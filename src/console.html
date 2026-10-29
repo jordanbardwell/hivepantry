@@ -234,7 +234,7 @@
     <button class="btn w" id="signin-btn">Sign in</button>
   </div>
   <p class="error" id="signin-error"></p>
-  <p class="muted">Type the ADMIN_TOKEN from the deploy. To sign in with your email address, set OWNER_EMAIL and deploy again.</p>
+  <p class="muted">Type the ADMIN_TOKEN password from the deploy.</p>
 </div>
 
 <div id="app" hidden>
@@ -459,7 +459,7 @@
       const me = await tool("whoami");
       if (!me.admin) throw new Error("This token is an agent token. Use the ADMIN_TOKEN.");
       try { sessionStorage.setItem("pantry-admin", token); } catch {}
-      start(me);
+      await begin(me);
     } catch (err) {
       token = "";
       $("signin-error").textContent = err.message;
@@ -745,6 +745,17 @@
     loadDay().catch(fail);
   }
 
+  // The deploy form does not ask for a time zone, so the first sign-in stores this browser's zone.
+  // The server keeps a zone that is already stored, and then whoami has the right "today".
+  async function begin(me) {
+    try {
+      const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const set = await api("/console/api/admin/time-zone", { time_zone: zone });
+      if (set.time_zone !== me.time_zone) me = await tool("whoami");
+    } catch {}
+    start(me);
+  }
+
   function start(me) {
     via = me.signed_in_with;
     state.today = me.today;
@@ -926,7 +937,7 @@
   });
 
   // Behind Cloudflare Access the browser is already signed in, so try without a token first.
-  tool("whoami").then((me) => (me.admin ? start(me) : signOut()), () => {
+  tool("whoami").then((me) => (me.admin ? begin(me) : signOut()), () => {
     token = "";
     try { sessionStorage.removeItem("pantry-admin"); } catch {}
   });

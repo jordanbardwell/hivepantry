@@ -2,15 +2,37 @@ import { PantryError } from "./errors";
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-// PANTRY_TZ is an IANA zone. An unknown zone is a 500 rather than a log filed on the wrong day.
-export function zoneOf(env: Env): string {
-  const zone = env.PANTRY_TZ?.trim() || "UTC";
+export function isTimeZone(zone: string): boolean {
   try {
     new Intl.DateTimeFormat("en-US", { timeZone: zone });
+    return true;
   } catch {
-    throw new PantryError("misconfigured", `PANTRY_TZ is not a known time zone: ${zone}`);
+    return false;
   }
-  return zone;
+}
+
+// The day boundary zone: PANTRY_TZ if you set it on the worker, else the zone that the console
+// stored from the browser, else UTC. An unknown PANTRY_TZ is a 500 rather than a log filed on the
+// wrong day.
+export async function zoneOf(env: Env): Promise<string> {
+  const fixed = env.PANTRY_TZ?.trim();
+  if (fixed) {
+    if (!isTimeZone(fixed)) throw new PantryError("misconfigured", `PANTRY_TZ is not a known time zone: ${fixed}`);
+    return fixed;
+  }
+  const row = await env.DB.prepare("SELECT value FROM settings WHERE key = 'time_zone'").first<{ value: string }>();
+  return row && isTimeZone(row.value) ? row.value : "UTC";
+}
+
+// Stores the browser's zone the first time the console signs in. A stored zone or PANTRY_TZ wins,
+// so a sign-in from a laptop in a different zone does not move your days.
+export async function adoptTimeZone(env: Env, zone: unknown): Promise<{ time_zone: string }> {
+  if (typeof zone === "string" && isTimeZone(zone) && !env.PANTRY_TZ?.trim()) {
+    await env.DB.prepare("INSERT INTO settings (key, value, updated_at) VALUES ('time_zone', ?, ?) ON CONFLICT (key) DO NOTHING")
+      .bind(zone, new Date().toISOString())
+      .run();
+  }
+  return { time_zone: await zoneOf(env) };
 }
 
 function parts(instant: Date, zone: string): Record<string, string> {
