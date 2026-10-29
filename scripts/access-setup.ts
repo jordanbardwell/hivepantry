@@ -74,14 +74,22 @@ export async function ensureConsoleAccess(
     await cf(`${account}/access/identity_providers`, { method: "POST", body: { name: "One-time PIN", type: "onetimepin", config: {} } });
   }
 
+  // SameSite=Lax keeps a page on another site from sending the session cookie with a POST. The
+  // worker also checks Origin, so an app made before this setting is still safe.
+  const appBody = {
+    name: `${options.appName} console`,
+    type: "self_hosted",
+    domain,
+    session_duration: "24h",
+    app_launcher_visible: false,
+    same_site_cookie_attribute: "lax",
+    http_only_cookie_attribute: true,
+  };
   const apps = ((await cf(`${account}/access/apps`)) as App[] | null) ?? [];
-  let app = apps.find((a) => a.domain === domain);
-  if (!app) {
-    app = (await cf(`${account}/access/apps`, {
-      method: "POST",
-      body: { name: `${options.appName} console`, type: "self_hosted", domain, session_duration: "24h", app_launcher_visible: false },
-    })) as App;
-  }
+  const found = apps.find((a) => a.domain === domain);
+  const app = (found
+    ? await cf(`${account}/access/apps/${found.id}`, { method: "PUT", body: appBody })
+    : await cf(`${account}/access/apps`, { method: "POST", body: appBody })) as App;
 
   const policy = {
     name: "Owner",

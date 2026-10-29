@@ -43,7 +43,7 @@ The deploy script (`scripts/access-setup.ts`) does these steps on each deploy:
 
 - It makes the Zero Trust organization if it does not exist. The team domain is `<workers.dev subdomain>.cloudflareaccess.com`.
 - It adds the One-time PIN login method if the account does not have a login method.
-- It makes a self-hosted Access application for `<worker>.<subdomain>.workers.dev/console` if it does not exist.
+- It makes a self-hosted Access application for `<worker>.<subdomain>.workers.dev/console` if it does not exist. It sets the session cookie of the application to `SameSite=Lax` and `HttpOnly`.
 - It sets the "Owner" policy of the application to the addresses in `OWNER_EMAIL`.
 - It sets `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` on the worker.
 
@@ -52,6 +52,8 @@ The Access application covers only `/console`. The console calls its API at `/co
 With One-time PIN, Cloudflare sends a code to your email address. To sign in with Google, add Google as a login method in Zero Trust. The application accepts all login methods of the account.
 
 The worker verifies the Access JWT in the `Cf-Access-Jwt-Assertion` header. It uses the keys at `https://<team>/cdn-cgi/access/certs` and the RS256 algorithm. It examines the audience, the issuer, and the expiry time. It also examines that the email is in `OWNER_EMAIL`. `ADMIN_TOKEN` continues to operate.
+
+The worker accepts the Access JWT only on `/console/api/`. On `/v1` and `/mcp`, it accepts only bearer tokens. For a change with an Access sign-in (each method other than `GET`), the `Origin` header must be the address of the worker. Thus, a page on a different site cannot use your Access sign-in to change your data.
 
 **CAUTION:** The deploy uses the API token of Workers Builds. This token must have these permissions:
 

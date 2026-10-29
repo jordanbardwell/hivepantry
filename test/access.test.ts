@@ -30,8 +30,8 @@ async function jwt(claims: Record<string, unknown>, key = signer, kid = "k1"): P
   return `${body}.${b64url(signature)}`;
 }
 
-async function whoami(headers: Record<string, string>) {
-  const response = await SELF.fetch("https://pantry.test/v1/tools/whoami", { method: "POST", headers: { "content-type": "application/json", ...headers }, body: "{}" });
+async function whoami(headers: Record<string, string>, path = "/console/api/tools/whoami") {
+  const response = await SELF.fetch(`https://pantry.test${path}`, { method: "POST", headers: { "content-type": "application/json", origin: "https://pantry.test", ...headers }, body: "{}" });
   return { status: response.status, json: (await response.json()) as any };
 }
 
@@ -79,6 +79,23 @@ describe("Cloudflare Access sign-in", () => {
     const agent = await mint("claude");
     const result = await whoami({ authorization: `Bearer ${agent}`, "cf-access-jwt-assertion": await jwt({}) });
     expect(result.json.data).toMatchObject({ agent_id: "claude", admin: false, signed_in_with: "agent_token" });
+  });
+
+  it("does not take an Access JWT outside the console API", async () => {
+    expect((await whoami({ "cf-access-jwt-assertion": await jwt({}) }, "/v1/tools/whoami")).status).toBe(401);
+  });
+
+  it("refuses a console change from another origin", async () => {
+    const token = await jwt({});
+    const goals = (origin: string | null) =>
+      SELF.fetch("https://pantry.test/console/api/tools/set_goals", {
+        method: "POST",
+        headers: { "content-type": "text/plain", "cf-access-jwt-assertion": token, ...(origin ? { origin } : {}) },
+        body: JSON.stringify({ calories: 1 }),
+      });
+    expect((await goals("https://evil.example")).status).toBe(403);
+    expect((await goals(null)).status).toBe(403);
+    expect((await goals("https://pantry.test")).status).toBe(200);
   });
 
   it("still needs a bearer token on /mcp", async () => {

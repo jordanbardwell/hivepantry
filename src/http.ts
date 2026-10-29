@@ -25,6 +25,7 @@ function fail(err: unknown): Response {
 }
 
 async function readJson(request: Request): Promise<unknown> {
+  if (Number(request.headers.get("content-length") ?? 0) > MAX_BODY_BYTES) throw new PantryError("invalid", `Body is larger than ${MAX_BODY_BYTES} bytes`);
   const text = await request.text();
   if (new TextEncoder().encode(text).length > MAX_BODY_BYTES) throw new PantryError("invalid", `Body is larger than ${MAX_BODY_BYTES} bytes`);
   if (!text.trim()) return {};
@@ -53,9 +54,15 @@ export async function handleFetch(request: Request, env: Env, ctx: ExecutionCont
 
     // The console calls the API under its own path, so the Cloudflare Access application on
     // /console also signs in its API calls. /mcp and /v1 stay outside Access for agents.
-    const apiPath = url.pathname.startsWith(CONSOLE_API) ? `/v1/${url.pathname.slice(CONSOLE_API.length)}` : url.pathname;
+    const consoleApi = url.pathname.startsWith(CONSOLE_API);
+    const apiPath = consoleApi ? `/v1/${url.pathname.slice(CONSOLE_API.length)}` : url.pathname;
     if (!apiPath.startsWith("/v1/")) throw new PantryError("not_found", "Not found");
-    const access = await authenticate(request, env, ctx);
+    const access = await authenticate(request, env, ctx, consoleApi);
+    // Access signs the browser in with a cookie, so a page on another site could send a simple
+    // cross-site POST with it. Browsers send Origin on every POST and DELETE; only our own counts.
+    if (access.via === "access" && request.method !== "GET" && request.method !== "HEAD" && request.headers.get("origin") !== url.origin) {
+      throw new PantryError("forbidden", "A console change must come from the console page");
+    }
     const path = apiPath.slice("/v1/".length).split("/");
 
     if (path[0] === "tools") {

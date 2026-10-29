@@ -25,10 +25,11 @@ export function bearerOf(request: Request): string | null {
 
 // The owner signs in with the ADMIN_TOKEN secret that the Deploy to Cloudflare form asks for, or,
 // when it is set up, through Cloudflare Access. Agent tokens are minted by the owner and stored as
-// SHA-256 hashes. A bearer token wins over an Access sign-in.
-export async function authenticate(request: Request, env: Env, ctx: ExecutionContext): Promise<Access> {
+// SHA-256 hashes. A bearer token wins over an Access sign-in. Only routes that the Access
+// application covers pass allowAccess, so an Access JWT is not an owner credential on /v1 or /mcp.
+export async function authenticate(request: Request, env: Env, ctx: ExecutionContext, allowAccess = false): Promise<Access> {
   const token = bearerOf(request);
-  const access = accessConfig(env);
+  const access = allowAccess ? accessConfig(env) : null;
   const jwt = access ? request.headers.get("cf-access-jwt-assertion") : null;
   if (!token && access && jwt) {
     const email = await verifyAccessJwt(jwt, access);
