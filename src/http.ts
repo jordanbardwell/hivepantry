@@ -24,10 +24,15 @@ function fail(err: unknown): Response {
   return json(error.status, { ok: false, error: errorBody(error) }, headers);
 }
 
-async function readJson(request: Request): Promise<unknown> {
+async function readBody(request: Request): Promise<string> {
   if (Number(request.headers.get("content-length") ?? 0) > MAX_BODY_BYTES) throw new PantryError("invalid", `Body is larger than ${MAX_BODY_BYTES} bytes`);
   const text = await request.text();
   if (new TextEncoder().encode(text).length > MAX_BODY_BYTES) throw new PantryError("invalid", `Body is larger than ${MAX_BODY_BYTES} bytes`);
+  return text;
+}
+
+async function readJson(request: Request): Promise<unknown> {
+  const text = await readBody(request);
   if (!text.trim()) return {};
   try {
     return JSON.parse(text);
@@ -49,7 +54,9 @@ export async function handleFetch(request: Request, env: Env, ctx: ExecutionCont
     if (url.pathname === "/mcp") {
       if (!bearerOf(request)) throw new PantryError("unauthorized", "Bearer token required");
       const access = await authenticate(request, env, ctx);
-      return await mcpHandler(request, env, ctx, access);
+      // The MCP transport reads the body itself, so apply the REST size limit before it does.
+      const body = request.method === "POST" ? await readBody(request) : null;
+      return await mcpHandler(body === null ? request : new Request(request, { body }), env, ctx, access);
     }
 
     // The console calls the API under its own path, so the Cloudflare Access application on

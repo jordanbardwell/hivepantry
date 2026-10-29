@@ -6,6 +6,8 @@ Each request must have the header `Authorization: Bearer <token>`. These request
 
 Each IP address can try `ADMIN_TOKEN` a maximum of 30 times in one minute. More tries receive 429. Agent tokens do not have this limit.
 
+The maximum size of a request body is 64 KB. This limit applies to `/mcp`, `/v1`, and the console API. A larger body receives 400 with the code `invalid`.
+
 Each reply is JSON with one of these two formats:
 
 - `{ "ok": true, "data": ... }`
@@ -23,7 +25,7 @@ Each reply is JSON with one of these two formats:
 
 ## MCP
 
-`POST /mcp` uses MCP over streamable HTTP without sessions. The server instructions are the text of the `guide` tool. Each tool reply is the JSON envelope above, as text content. If an error occurs, the reply also sets `isError`.
+`POST /mcp` uses MCP over streamable HTTP without sessions. The server instructions are the text of the `guide` tool. Each tool reply is the JSON envelope above, as text content. If an error occurs, the reply also sets `isError`. If the arguments do not agree with the input schema of the tool, the MCP library sends the reply. That reply is plain text, not the JSON envelope, and it also sets `isError`.
 
 ## Tools
 

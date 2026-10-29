@@ -1,3 +1,4 @@
+import { SELF } from "cloudflare:test";
 import { beforeEach, describe, expect, it } from "vitest";
 import { mint, reset, rpc } from "./helpers";
 import { TOOLS } from "../src/tools";
@@ -32,5 +33,15 @@ describe("mcp", () => {
     const { body } = await rpc(agent, "tools/call", { name: "delete_entry", arguments: { id: "missing" } });
     expect(body.result.isError).toBe(true);
     expect(JSON.parse(body.result.content[0].text).error.code).toBe("not_found");
+  });
+
+  it("refuses a body larger than 64 KB, as REST does", async () => {
+    const body = JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "whoami", arguments: { pad: "x".repeat(70_000) } } });
+    const response = await SELF.fetch("https://pantry.test/mcp", {
+      method: "POST",
+      headers: { authorization: `Bearer ${agent}`, "content-type": "application/json", accept: "application/json, text/event-stream" },
+      body,
+    });
+    expect(response.status).toBe(400);
   });
 });
