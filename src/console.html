@@ -18,7 +18,7 @@
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.5 var(--font); -webkit-font-smoothing: antialiased; }
   button, input, select { font: inherit; color: inherit; }
-  button { background: none; border: 0; cursor: pointer; padding: 0; }
+  button { background: none; border: 0; cursor: pointer; padding: 0; -webkit-tap-highlight-color: transparent; }
   [hidden] { display: none !important; }
   .num { font-variant-numeric: tabular-nums; }
   .muted { color: var(--ink-3); }
@@ -90,8 +90,6 @@
   .card h2 { font-size: 12px; font-weight: 500; color: var(--ink-2); display: flex; align-items: center; gap: 8px; margin: 0 0 12px; }
   .card h2 .r { margin-left: auto; color: var(--ink-3); font-weight: 400; }
   .c3 { grid-column: span 3; } .c4 { grid-column: span 4; } .c5 { grid-column: span 5; } .c7 { grid-column: span 7; } .c8 { grid-column: span 8; } .c12 { grid-column: span 12; }
-  @media (max-width: 1080px) { .c3, .c4, .c5 { grid-column: span 6; } .c7, .c8 { grid-column: span 12; } .cmd { width: 260px; } }
-  @media (max-width: 720px) { .grid > * { grid-column: span 12; } header { flex-wrap: wrap; } .cmd { width: 100%; order: 5; } }
   .empty { color: var(--ink-3); padding: 18px 0; text-align: center; }
 
   /* Hero number */
@@ -121,7 +119,7 @@
   .stat .d.over { color: var(--critical); }
 
   /* Charts */
-  svg.chart { width: 100%; display: block; overflow: visible; }
+  svg.chart { width: 100%; display: block; overflow: visible; touch-action: pan-y; }
   svg text { fill: var(--ink-3); font-size: 11px; font-family: var(--font); }
   svg .grid-line { stroke: var(--line); }
   svg .bar { fill: #5a5a5a; }
@@ -140,10 +138,10 @@
   .legend { display: inline-flex; align-items: center; gap: 6px; }
 
   /* Entry feed */
-  .feed { max-height: 236px; overflow-y: auto; margin: 0 -6px; padding: 0 6px; }
+  .feed { max-height: 236px; overflow-y: auto; overflow-x: hidden; margin: 0 -6px; padding: 0 6px; }
   .meal { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .06em; padding: 12px 0 4px; }
   .meal:first-child { padding-top: 0; }
-  .e { display: grid; grid-template-columns: 44px 1fr auto 24px; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
+  .e { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto 24px; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
   .e .t { color: var(--ink-3); }
   .e .n { color: var(--ink); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .e .m { color: var(--ink-3); font-size: 12px; }
@@ -172,6 +170,56 @@
   #tip { position: fixed; z-index: 50; pointer-events: none; background: #fff; color: #000; font-size: 12px; padding: 6px 10px; border-radius: 10px; opacity: 0; transition: opacity .08s; line-height: 1.4; white-space: pre-line; box-shadow: 0 8px 24px rgba(0,0,0,.5); max-width: 260px; }
   #toast { position: fixed; z-index: 60; left: 50%; bottom: 24px; transform: translateX(-50%); background: #fff; color: #000; border-radius: 999px; padding: 8px 18px; font-size: 13px; box-shadow: 0 12px 40px rgba(0,0,0,.6); max-width: min(640px, 92vw); }
   #toast.bad { background: var(--critical); color: #000; }
+
+  /* Narrow screens and touch screens. These come last so that they win over the rules above. */
+  @media (max-width: 1080px) { .c3, .c4, .c5 { grid-column: span 6; } .c7, .c8 { grid-column: span 12; } .cmd { width: 260px; } }
+  @media (max-width: 720px) {
+    .grid > * { grid-column: span 12; }
+    header { flex-wrap: wrap; gap: 10px; padding: 10px 14px; }
+    .brand-name, .who { display: none; }
+    .tabs button { padding: 5px 12px; }
+    /* Two rows: the logo and the tabs, then the search box and Sign out. */
+    header > .grow { order: 4; flex-basis: 100%; height: 0; }
+    .cmd { order: 5; flex: 1; width: auto; min-width: 0; }
+    .cmd-field kbd { display: none; }
+    #signout { order: 6; }
+    .card h2 .r.wrap { margin-left: 0; flex-basis: 100%; }
+    .card h2 { flex-wrap: wrap; }
+    .x { opacity: 1; }
+    .col-token { display: none; }
+    td { padding-right: 8px; }
+    .status { white-space: nowrap; }
+    /* The token table has too many columns for a phone, so each token is a block: the agent and
+       Revoke on top, then the token state, access, and last use. */
+    #agents-table tr:has(th) { display: none; }
+    #agents-table tr { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+    #agents-table td { display: block; border: 0; padding: 0; }
+    #agents-table td:nth-child(1) { grid-column: 1 / 4; grid-row: 1; }
+    #agents-table td:nth-child(2) { grid-column: 1; grid-row: 2; }
+    #agents-table td:nth-child(3) { grid-column: 2; grid-row: 2; }
+    #agents-table td:nth-child(4) { grid-column: 3; grid-row: 2; }
+    #agents-table td:nth-child(5) { grid-column: 4; grid-row: 1 / 3; }
+    td .btn { padding: 6px 10px; }
+    .pop { max-height: 60vh; }
+    main { padding: 14px 14px 40px; }
+    .filters h1 { font-size: 18px; margin-left: 4px; }
+    .card { padding: 16px; }
+    .hero .big { font-size: 48px; }
+    .feed { max-height: none; }
+    input.wide { min-width: 0; flex: 1 1 100%; }
+    /* iOS zooms in on an input with text under 16 px. */
+    input, select { font-size: 16px; }
+  }
+  /* Touch screens: no hover, so show the delete buttons and make the targets bigger. */
+  @media (hover: none) {
+    .x { opacity: 1; width: 32px; height: 32px; }
+    .e { grid-template-columns: 44px minmax(0, 1fr) auto 32px; }
+    .btn { padding: 8px 14px; }
+    .icon-btn { width: 36px; height: 36px; }
+    .seg button { padding: 8px 14px; }
+    .tabs button { padding: 7px 14px; }
+    .res { padding: 12px 10px; }
+  }
 </style>
 </head>
 <body>
@@ -191,7 +239,7 @@
 
 <div id="app" hidden>
   <header>
-    <div class="brand"><svg class="logo" width="22" height="22"><use href="#mark"/></svg>__APP_NAME__</div>
+    <div class="brand"><svg class="logo" width="22" height="22"><use href="#mark"/></svg><span class="brand-name">__APP_NAME__</span></div>
     <nav class="tabs" aria-label="Views">
       <button data-view="overview" aria-current="page">Overview</button>
       <button data-view="agents">Agents</button>
@@ -239,7 +287,7 @@
         <section class="card c4"><div class="stats" id="stats"></div></section>
 
         <section class="card c8">
-          <h2>Calories per day <span class="r"><span class="legend">- - goal</span> · <span class="legend">▲ over goal</span> · select a bar to open the day</span></h2>
+          <h2>Calories per day <span class="r wrap"><span class="legend">- - goal</span> · <span class="legend">▲ over goal</span> · select a bar to open the day</span></h2>
           <svg class="chart" id="cal" viewBox="0 0 760 220" role="img" aria-label="Calories per day"></svg>
         </section>
 
@@ -355,17 +403,21 @@
 
   // One tooltip for the page. A mark carries its text in data-tip: the first line is the heading.
   const tip = $("tip");
-  document.addEventListener("mousemove", (e) => {
+  const hideTip = () => (tip.style.opacity = 0);
+  const showTip = (e) => {
     const el = e.target.closest?.("[data-tip]");
-    if (!el) return void (tip.style.opacity = 0);
+    if (!el) return void hideTip();
     const [head, ...rest] = el.getAttribute("data-tip").split("\n");
     const b = document.createElement("b");
     b.textContent = head;
     tip.replaceChildren(b, ...(rest.length ? ["\n" + rest.join("\n")] : []));
-    tip.style.left = `${Math.min(e.clientX + 14, innerWidth - tip.offsetWidth - 8)}px`;
-    tip.style.top = `${e.clientY - tip.offsetHeight - 10}px`;
+    tip.style.left = `${Math.max(8, Math.min(e.clientX + 14, innerWidth - tip.offsetWidth - 8))}px`;
+    tip.style.top = `${Math.max(8, e.clientY - tip.offsetHeight - 10)}px`;
     tip.style.opacity = 1;
-  });
+  };
+  document.addEventListener("pointermove", showTip);
+  document.addEventListener("pointerdown", showTip);
+  addEventListener("scroll", hideTip, { passive: true });
 
   // Inline style attributes are blocked by the CSP, so widths are set through the DOM.
   const bars = (root) => root.querySelectorAll("[data-pct]").forEach((el) => (el.style.width = `${el.dataset.pct}%`));
@@ -376,6 +428,8 @@
     return n;
   };
   const svgText = (parent, x, y, text, attrs) => (svgEl("text", { x, y, ...attrs }, parent).textContent = text);
+  // A chart draws in its own pixels, so its text keeps one size from a phone to a wide screen.
+  const chartWidth = (svg, fallback) => Math.round(svg.getBoundingClientRect().width) || fallback;
   const niceStep = (span) => {
     const raw = span / 3;
     const p = 10 ** Math.floor(Math.log10(raw));
@@ -514,7 +568,8 @@
   function renderCalories(t) {
     const svg = $("cal");
     svg.replaceChildren();
-    const W = 760, H = 220, L = 40, R = 8, T = 18, B = 26;
+    const W = chartWidth(svg, 760), H = 220, L = 40, R = 8, T = 18, B = 26;
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
     const goal = t.goals?.calories ?? null;
     const vals = t.days.map((d) => d.totals?.calories ?? null);
     const step = niceStep(Math.max(1, goal || 0, ...vals.map((v) => v || 0)) * 1.1);
@@ -528,7 +583,7 @@
     const slot = (W - L - R) / n;
     const bw = Math.max(2, Math.min(44, slot * 0.72));
     const radius = bw >= 10 ? 4 : Math.min(2, bw / 2);
-    const every = Math.ceil(n / 7);
+    const every = Math.ceil(n / Math.max(3, Math.min(7, Math.floor((W - L - R) / 72))));
     t.days.forEach((d, i) => {
       const x = L + i * slot + (slot - bw) / 2;
       const v = vals[i];
@@ -569,9 +624,10 @@
     const svg = $("wt");
     svg.replaceChildren();
     $("wt-range").textContent = `${dateLabel(w.from, { month: "short", day: "numeric" })} – ${dateLabel(w.to, { month: "short", day: "numeric" })}`;
-    const W = 640, H = 190, L = 36, R = 12, T = 14, B = 26;
+    const W = chartWidth(svg, 640), H = 190, L = 36, R = 12, T = 14, B = 26;
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
     if (!w.weights.length) {
-      svgText(svg, W / 2, H / 2, "There are no weigh-ins in this period. Agents log them with log_weight.", { "text-anchor": "middle" });
+      svgText(svg, W / 2, H / 2, "There are no weigh-ins in this period.", { "text-anchor": "middle" });
       return;
     }
     const kgs = w.weights.map((p) => p.weight_kg);
@@ -606,7 +662,7 @@
     const cross = svgEl("line", { class: "cross", y1: T, y2: H - B, visibility: "hidden" }, svg);
     const dot = svgEl("circle", { class: "wdot", r: 4, visibility: "hidden" }, svg);
     const hit = svgEl("rect", { class: "hit", x: L, y: T, width: W - L - R, height: H - T - B }, svg);
-    hit.addEventListener("mousemove", (e) => {
+    const crosshair = (e) => {
       const box = svg.getBoundingClientRect();
       const mx = ((e.clientX - box.left) * W) / box.width;
       let i = 0;
@@ -618,8 +674,10 @@
       cross.setAttribute("visibility", "visible");
       dot.setAttribute("visibility", "visible");
       hit.setAttribute("data-tip", `${dateLabel(p.date, { weekday: "short", month: "short", day: "numeric" })}\n${fmt(p.weight_kg)} kg · ${fmt(p.weight_lb)} lb${p.body_fat_pct ? ` · ${fmt(p.body_fat_pct)}% fat` : ""}`);
-    });
-    hit.addEventListener("mouseleave", () => {
+    };
+    hit.addEventListener("pointermove", crosshair);
+    hit.addEventListener("pointerdown", crosshair);
+    hit.addEventListener("pointerleave", () => {
       cross.setAttribute("visibility", "hidden");
       dot.setAttribute("visibility", "hidden");
     });
@@ -641,6 +699,17 @@
       : `<tr><td class="empty">There are no agents. Make a token on the Agents page.</td></tr>`;
   }
 
+  let resizeTimer, lastWidth = innerWidth;
+  addEventListener("resize", () => {
+    if (innerWidth === lastWidth) return; // A phone fires resize when its toolbar hides.
+    lastWidth = innerWidth;
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      if (trends) renderCalories(trends);
+      if (weights) renderWeight(weights);
+    }, 150);
+  });
+
   // ---------- agents and connect ----------
 
   async function loadAgents() {
@@ -649,7 +718,7 @@
       ? `<tr><th>Agent</th><th>Token</th><th>Access</th><th>Last used</th><th></th></tr>` +
         agents.flatMap((a) => (a.tokens.length ? a.tokens : [null]).map((t, i) => `<tr>
           <td>${i ? "" : `<span class="status"><i class="${!a.disabled_at && a.tokens.some(activeToken) ? "on" : ""}"></i>${esc(a.id)}</span>${a.disabled_at ? ' <span class="muted">disabled</span>' : ""}`}</td>
-          <td>${t ? `<code>${esc(t.id.slice(-8))}</code>${t.revoked_at ? ' <span class="muted">revoked</span>' : t.expires_at ? ` <span class="muted">expires ${esc(t.expires_at.slice(0, 10))}</span>` : ""}` : "–"}</td>
+          <td>${t ? `<code class="col-token">${esc(t.id.slice(-8))}</code>${t.revoked_at ? ' <span class="muted">revoked</span>' : t.expires_at ? ` <span class="muted">expires ${esc(t.expires_at.slice(0, 10))}</span>` : ' <span class="muted col-token">active</span>'}` : "–"}</td>
           <td>${t ? `<span class="tag">${esc(t.scopes.join(" + "))}</span>` : ""}</td><td>${t ? esc(ago(t.last_used_at)) : ""}</td>
           <td class="r">${t && !t.revoked_at ? `<button class="btn danger" data-revoke="${esc(t.id)}">Revoke</button>` : ""}</td></tr>`)).join("")
       : `<tr><td class="empty">There are no agents. Make a token above.</td></tr>`;
