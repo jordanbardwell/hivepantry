@@ -1,6 +1,6 @@
 import { ZodError } from "zod";
 
-export type ErrorCode = "unauthorized" | "forbidden" | "not_found" | "invalid" | "conflict" | "misconfigured" | "internal";
+export type ErrorCode = "unauthorized" | "forbidden" | "not_found" | "invalid" | "conflict" | "rate_limited" | "misconfigured" | "internal";
 
 const STATUS: Record<ErrorCode, number> = {
   unauthorized: 401,
@@ -8,6 +8,7 @@ const STATUS: Record<ErrorCode, number> = {
   not_found: 404,
   invalid: 400,
   conflict: 409,
+  rate_limited: 429,
   misconfigured: 500,
   internal: 500,
 };

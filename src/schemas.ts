@@ -125,4 +125,5 @@ export const mintSchema = z.object({
   name: text(100).optional(),
   scopes: z.array(z.enum(["read", "write"])).min(1).optional().describe('Default ["read", "write"].'),
   label: text(100).optional(),
+  expires_in_days: z.number().int().min(1).max(3650).optional().describe("The token stops working after this many days. Default: no expiry."),
 });

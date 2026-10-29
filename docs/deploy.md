@@ -60,13 +60,22 @@ The worker accepts the Access JWT only on `/console/api/`. On `/v1` and `/mcp`, 
 - Access: Apps and Policies (Edit)
 - Access: Organizations, Identity Providers, and Groups (Edit)
 
-If the token does not have these permissions, the deploy shows a warning and continues without Access. The console then uses only `ADMIN_TOKEN`. To add the permissions, edit the build token in the Cloudflare dashboard. Then start the deploy again.
+The second permission can change all of your Zero Trust organization. The deploy needs Edit only for the first deploy, when it makes the organization and the login method. After the first deploy, change this permission to Read.
+
+If the token does not have these permissions, the deploy shows a warning and continues. If an earlier deploy set up Access, the worker keeps its Access settings. If not, the console uses only `ADMIN_TOKEN`. To add the permissions, edit the build token in the Cloudflare dashboard. Then start the deploy again.
 
 **CAUTION:** Do not enable the one-click Access setting on the worker. That setting covers all of the `workers.dev` hostname, also `/mcp`. MCP clients cannot complete a browser sign-in, so the agents stop.
 
 ## Updates
 
-Your copy does not receive updates from this repository automatically. The workflow `.github/workflows/sync-upstream.yml` does this task:
+Your copy does not receive updates from this repository automatically. An update runs code from this repository with your data. Thus, you must decide to accept updates.
+
+To receive updates, do these steps:
+
+1. In your GitHub copy, go to **Settings**, then to **Secrets and variables**, then to **Actions**.
+2. On the **Variables** tab, add the repository variable `SYNC_UPSTREAM` with the value `true`.
+
+Then the workflow `.github/workflows/sync-upstream.yml` does this task:
 
 - It moves your `main` forward to the `main` of this repository one time each day. You can also start it from the **Actions** page.
 - The push to your `main` deploys the update.
@@ -77,6 +86,8 @@ The workflow fails in these conditions:
 - An update changes a workflow file.
 
 If the workflow fails, merge `upstream/main` manually.
+
+To stop updates, delete the variable or set it to `false`.
 
 GitHub stops scheduled workflows in a repository that has no activity for 60 days. To start the workflow again, enable it on the **Actions** page.
 

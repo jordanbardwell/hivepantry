@@ -1,5 +1,6 @@
+import { env } from "cloudflare:test";
 import { beforeEach, describe, expect, it } from "vitest";
-import { ADMIN, call, data, mint, reset } from "./helpers";
+import { ADMIN, call, data, mint, reset, rest } from "./helpers";
 
 let agent: string;
 beforeEach(async () => {
@@ -100,6 +101,8 @@ describe("log_food", () => {
     expect(updated.day).toMatchObject({ date: "2026-10-21", totals: { calories: 325 } });
     const removed = await data(agent, "delete_entry", { id: entry.id });
     expect(removed.day.entry_count).toBe(0);
+    const row = await (env as Env).DB.prepare("SELECT deleted_by FROM entries WHERE id = ?").bind(entry.id).first<{ deleted_by: string }>();
+    expect(row?.deleted_by).toBe("claude");
     expect((await call(agent, "delete_entry", { id: entry.id })).status).toBe(404);
   });
 });
@@ -136,6 +139,16 @@ describe("days, goals, and trends", () => {
     expect((await data(agent, "get_trends", { to: "2026-10-20", days: 3 })).from).toBe("2026-10-18");
     expect((await call(agent, "get_trends", { from: "2026-10-21", to: "2026-10-20" })).status).toBe(400);
   });
+
+  it("compares each day of a range with the goals of that day", async () => {
+    await data(agent, "set_goals", { calories: 2000, effective_from: "2026-10-01" });
+    await data(agent, "set_goals", { calories: 1500, effective_from: "2026-10-19" });
+    await data(agent, "log_food", { name: "A", calories: 2100, protein_g: 100, carbs_g: 200, fat_g: 60, date: "2026-10-18" });
+    await data(agent, "log_food", { name: "B", calories: 1600, protein_g: 120, carbs_g: 250, fat_g: 70, date: "2026-10-20" });
+    const trends = await data(agent, "get_trends", { from: "2026-10-14", to: "2026-10-20" });
+    expect(trends.goals.calories).toBe(1500);
+    expect(trends.average_vs_goal).toEqual({ calories: 100 });
+  });
 });
 
 describe("weights", () => {
@@ -151,7 +164,7 @@ describe("weights", () => {
     expect((await data(agent, "get_weights", { from: "2026-10-01", to: "2026-10-31" })).count).toBe(1);
   });
 
-  it("lets the admin token use every tool", async () => {
-    expect((await call(ADMIN, "log_weight", { weight: 70, unit: "kg" })).status).toBe(200);
+  it("lets the admin token use every tool from the console", async () => {
+    expect((await rest("/console/api/tools/log_weight", ADMIN, { method: "POST", body: JSON.stringify({ weight: 70, unit: "kg" }) })).status).toBe(200);
   });
 });

@@ -103,3 +103,12 @@ export async function ensureConsoleAccess(
 
   return { team, aud: app.aud, host };
 }
+
+// The ACCESS_ vars of the deployed worker, as --var arguments, or none if it has no Access setup.
+export async function liveAccessVars(cf: CfFetch, accountId: string, workerName: string): Promise<string[]> {
+  const settings = (await cf(`/accounts/${accountId}/workers/scripts/${workerName}/settings`)) as { bindings?: { type: string; name: string; text?: string }[] };
+  const value = (name: string) => settings.bindings?.find((b) => b.type === "plain_text" && b.name === name)?.text ?? "";
+  const team = value("ACCESS_TEAM_DOMAIN");
+  const aud = value("ACCESS_AUD");
+  return team && aud ? ["--var", `ACCESS_TEAM_DOMAIN:${team}`, "--var", `ACCESS_AUD:${aud}`] : [];
+}

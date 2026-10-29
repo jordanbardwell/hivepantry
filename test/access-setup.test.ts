@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CloudflareApiError, ensureConsoleAccess, ownerEmails, type CfFetch } from "../scripts/access-setup.ts";
+import { CloudflareApiError, ensureConsoleAccess, liveAccessVars, ownerEmails, type CfFetch } from "../scripts/access-setup.ts";
 
 // An in-memory stand-in for the parts of the Cloudflare API that the deploy uses.
 function fakeApi(start: { org?: boolean; idps?: number } = {}) {
@@ -76,6 +76,20 @@ describe("console Access setup", () => {
     expect(state.policies.get("app0")).toHaveLength(1);
     expect(state.policies.get("app0")![0]!.include).toHaveLength(2);
     expect(state.calls.some((c) => c.includes("/mcp") || c.includes("/v1"))).toBe(false);
+  });
+
+  it("reads the Access vars of the live worker, so a failed setup does not turn them off", async () => {
+    const settings = (bindings: unknown[]): CfFetch => async (path) => {
+      expect(path).toBe("/accounts/acc/workers/scripts/hivepantry/settings");
+      return { bindings };
+    };
+    const live = [
+      { type: "plain_text", name: "ACCESS_TEAM_DOMAIN", text: "t.cloudflareaccess.com" },
+      { type: "plain_text", name: "ACCESS_AUD", text: "aud9" },
+      { type: "d1", name: "DB" },
+    ];
+    expect(await liveAccessVars(settings(live), "acc", "hivepantry")).toEqual(["--var", "ACCESS_TEAM_DOMAIN:t.cloudflareaccess.com", "--var", "ACCESS_AUD:aud9"]);
+    expect(await liveAccessVars(settings([{ type: "plain_text", name: "ACCESS_AUD", text: "" }]), "acc", "hivepantry")).toEqual([]);
   });
 
   it("parses owner emails", () => {

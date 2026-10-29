@@ -335,7 +335,7 @@ export async function saveFood(ctx: Ctx, input: z.infer<typeof saveFoodSchema>) 
 }
 
 export async function deleteFood(ctx: Ctx, input: z.infer<typeof idSchema>) {
-  const result = await ctx.env.DB.prepare("UPDATE foods SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL").bind(ctx.now.toISOString(), input.id).run();
+  const result = await ctx.env.DB.prepare("UPDATE foods SET deleted_at = ?, deleted_by = ? WHERE id = ? AND deleted_at IS NULL").bind(ctx.now.toISOString(), ctx.access.agentId, input.id).run();
   if (!result.meta.changes) throw new PantryError("not_found", `No saved food with id ${input.id}`);
   return { id: input.id, deleted: true };
 }
@@ -464,7 +464,7 @@ export async function updateEntry(ctx: Ctx, input: z.infer<typeof updateEntrySch
 
 export async function deleteEntry(ctx: Ctx, input: z.infer<typeof idSchema>) {
   const entry = await loadEntry(ctx.env, input.id);
-  await ctx.env.DB.prepare("UPDATE entries SET deleted_at = ? WHERE id = ?").bind(ctx.now.toISOString(), entry.id).run();
+  await ctx.env.DB.prepare("UPDATE entries SET deleted_at = ?, deleted_by = ? WHERE id = ?").bind(ctx.now.toISOString(), ctx.access.agentId, entry.id).run();
   return { id: entry.id, deleted: true, day: await dayTotals(ctx.env, entry.local_date) };
 }
 
@@ -505,10 +505,20 @@ export async function getTrends(ctx: Ctx, input: z.infer<typeof rangeSchema>) {
   const logged = rows.results.map((r) => nutrientsOf(r));
   const totals = sum(logged);
   const average = rounded(Object.fromEntries(NUTRIENTS.map((n) => [n, totals[n] === null || !logged.length ? null : totals[n]! / logged.length])) as Nutrients);
-  const goal = await goalsFor(ctx.env, to);
+  const goalRows = await ctx.env.DB.prepare("SELECT * FROM goals WHERE effective_from <= ? ORDER BY effective_from").bind(to).all<GoalRow>();
+  const goalOn = (date: string) => [...goalRows.results].reverse().find((g) => g.effective_from <= date) ?? null;
+  const goal = goalOn(to);
   const goals = goal ? nutrientsOf(goal) : null;
+  // Each logged day is compared with the goals in force on that day, so a goal change inside the
+  // range does not move the earlier days.
   const averageVsGoal: Partial<Record<Nutrient, number>> = {};
-  if (goals && logged.length) for (const n of NUTRIENTS) if (goals[n] !== null && average[n] !== null) averageVsGoal[n] = round(average[n]! - goals[n]!)!;
+  for (const n of NUTRIENTS) {
+    const gaps = rows.results.flatMap((r) => {
+      const dayGoal = goalOn(r.local_date)?.[n];
+      return dayGoal === null || dayGoal === undefined || r[n] === null ? [] : [r[n]! - dayGoal];
+    });
+    if (gaps.length) averageVsGoal[n] = round(gaps.reduce((a, b) => a + b, 0) / gaps.length)!;
+  }
   return {
     from,
     to,
@@ -611,7 +621,7 @@ export async function getWeights(ctx: Ctx, input: z.infer<typeof rangeSchema>) {
 }
 
 export async function deleteWeight(ctx: Ctx, input: z.infer<typeof idSchema>) {
-  const result = await ctx.env.DB.prepare("UPDATE weights SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL").bind(ctx.now.toISOString(), input.id).run();
+  const result = await ctx.env.DB.prepare("UPDATE weights SET deleted_at = ?, deleted_by = ? WHERE id = ? AND deleted_at IS NULL").bind(ctx.now.toISOString(), ctx.access.agentId, input.id).run();
   if (!result.meta.changes) throw new PantryError("not_found", `No weight with id ${input.id}`);
   return { id: input.id, deleted: true };
 }

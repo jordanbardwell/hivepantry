@@ -11,7 +11,7 @@ const MAX_BODY_BYTES = 64 * 1024;
 const CONSOLE_API = `${CONSOLE_PATH}/api/`;
 
 function json(status: number, body: unknown, headers: HeadersInit = {}): Response {
-  return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", ...headers } });
+  return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", ...headers } });
 }
 
 function ok(data: unknown, status = 200): Response {
@@ -57,13 +57,13 @@ export async function handleFetch(request: Request, env: Env, ctx: ExecutionCont
     const consoleApi = url.pathname.startsWith(CONSOLE_API);
     const apiPath = consoleApi ? `/v1/${url.pathname.slice(CONSOLE_API.length)}` : url.pathname;
     if (!apiPath.startsWith("/v1/")) throw new PantryError("not_found", "Not found");
-    const access = await authenticate(request, env, ctx, consoleApi);
+    const path = apiPath.slice("/v1/".length).split("/");
+    const access = await authenticate(request, env, ctx, { allowAccess: consoleApi, allowAdmin: consoleApi || path[0] === "admin" });
     // Access signs the browser in with a cookie, so a page on another site could send a simple
     // cross-site POST with it. Browsers send Origin on every POST and DELETE; only our own counts.
     if (access.via === "access" && request.method !== "GET" && request.method !== "HEAD" && request.headers.get("origin") !== url.origin) {
       throw new PantryError("forbidden", "A console change must come from the console page");
     }
-    const path = apiPath.slice("/v1/".length).split("/");
 
     if (path[0] === "tools") {
       if (path.length === 1 && request.method === "GET") {

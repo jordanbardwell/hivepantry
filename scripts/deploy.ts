@@ -4,7 +4,7 @@
 // deploy, where `wrangler deploy` has just created the database. Each step is safe to repeat.
 import { execFileSync, spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { cloudflareApi, ensureConsoleAccess, ownerEmails } from "./access-setup.ts";
+import { cloudflareApi, ensureConsoleAccess, liveAccessVars, ownerEmails } from "./access-setup.ts";
 
 const configPath = process.env.PANTRY_CONFIG ?? "wrangler.jsonc";
 
@@ -48,24 +48,29 @@ if (!sha) {
 const vars: string[] = sha ? ["--var", `GIT_SHA:${sha}`] : [];
 const emails = ownerEmails(process.env.OWNER_EMAIL ?? config.vars?.OWNER_EMAIL);
 const apiToken = process.env.CLOUDFLARE_API_TOKEN;
+const workerName = config.name ?? "hivepantry";
 if (emails.length && !apiToken) {
   console.warn("OWNER_EMAIL is set, but CLOUDFLARE_API_TOKEN is not. Skipping Cloudflare Access for the console.");
 } else if (emails.length && apiToken) {
+  const cf = cloudflareApi(apiToken);
+  let accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
   try {
-    const cf = cloudflareApi(apiToken);
-    let accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
     if (!accountId) {
       const accounts = (await cf("/accounts")) as { id: string }[];
       if (accounts.length !== 1) throw new Error("Set CLOUDFLARE_ACCOUNT_ID: the token can see more than one account");
       accountId = accounts[0]!.id;
     }
-    const access = await ensureConsoleAccess(cf, { accountId, workerName: config.name ?? "hivepantry", appName: "HivePantry", emails });
+    const access = await ensureConsoleAccess(cf, { accountId, workerName, appName: "HivePantry", emails });
     vars.push("--var", `ACCESS_TEAM_DOMAIN:${access.team}`, "--var", `ACCESS_AUD:${access.aud}`);
     console.log(`Cloudflare Access protects https://${access.host}/console for ${emails.join(", ")}.`);
   } catch (err) {
+    // Without the two vars the deploy would turn off the Access sign-in that an earlier deploy
+    // set up, so keep the values that the live worker has.
+    const kept = accountId ? await liveAccessVars(cf, accountId, workerName).catch(() => []) : [];
+    vars.push(...kept);
     console.warn(
-      `Could not set up Cloudflare Access for the console, so it keeps the ADMIN_TOKEN sign-in only. ${err instanceof Error ? err.message : String(err)}\n` +
-        "The build token needs the permissions Access: Apps and Policies (Edit) and Access: Organizations, Identity Providers, and Groups (Edit).",
+      `Could not set up Cloudflare Access for the console. ${kept.length ? "The worker keeps its current Access settings." : "The console keeps the ADMIN_TOKEN sign-in only."} ${err instanceof Error ? err.message : String(err)}\n` +
+        "The build token needs Access: Apps and Policies (Edit), and Access: Organizations, Identity Providers, and Groups (Edit for the first deploy, then Read).",
     );
   }
 }
