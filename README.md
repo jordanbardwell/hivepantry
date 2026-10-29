@@ -19,7 +19,7 @@ HivePantry is a log of calories and macronutrients for AI agents. Agents record 
 
 1. Click **Deploy to Cloudflare** above.
 2. Sign in to Cloudflare and GitHub.
-3. Type an admin password in `ADMIN_TOKEN`. Use a minimum of 16 characters. This is the only setting.
+3. Type an admin password in `ADMIN_TOKEN`. Use a minimum of 8 characters. This is the only setting.
 4. Keep the password in a safe location.
 5. Click **Create and deploy**. Wait until the deploy is complete.
 6. Open `https://<worker>.<subdomain>.workers.dev/console`.

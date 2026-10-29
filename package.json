@@ -26,7 +26,7 @@
   "cloudflare": {
     "bindings": {
       "ADMIN_TOKEN": {
-        "description": "Your admin password. Use a minimum of 16 characters. You sign in to /console with it. You make agent tokens there. Keep it in a safe location."
+        "description": "Your admin password. Use a minimum of 8 characters. You sign in to /console with it. You make agent tokens there. Keep it in a safe location."
       }
     }
   },
