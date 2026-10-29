@@ -174,7 +174,7 @@
   .feed.more { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent); }
   .meal { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .06em; padding: 12px 0 4px; }
   .meal:first-child { padding-top: 0; }
-  .e { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto 24px; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
+  .e { display: grid; grid-template-columns: 62px minmax(0, 1fr) auto 24px; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
   .e .t { color: var(--ink-3); }
   .e .n { color: var(--ink); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .e .m { color: var(--ink-3); font-size: 12px; }
@@ -273,7 +273,7 @@
   /* Touch screens: no hover, so show the delete buttons and make the targets bigger. */
   @media (hover: none) {
     .x { opacity: 1; width: 32px; height: 32px; }
-    .e { grid-template-columns: 44px minmax(0, 1fr) auto 32px; }
+    .e { grid-template-columns: 62px minmax(0, 1fr) auto 32px; }
     .btn { padding: 8px 14px; }
     .icon-btn { width: 36px; height: 36px; }
     .seg button { padding: 8px 14px; }
@@ -689,7 +689,7 @@
   function renderEntries(d) {
     $("entries-title").textContent = d.date === state.today ? "Today" : dateLabel(d.date, { weekday: "short", month: "short", day: "numeric" });
     $("entries-count").textContent = `${d.entry_count} ${d.entry_count === 1 ? "entry" : "entries"}`;
-    const time = (e) => (e.consumed_at ? new Date(e.consumed_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: state.tz }) : "–");
+    const time = (e) => (e.consumed_at ? new Date(e.consumed_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: state.tz }) : "–");
     const amount = (e) => (e.grams !== null ? `${fmt(e.grams)} g` : e.serving_unit ? `${fmt(e.servings)} × ${fmt(e.serving_size)} ${e.serving_unit}` : `${fmt(e.servings)} serving${e.servings === 1 ? "" : "s"}`);
     $("entries").innerHTML = d.meals.length
       ? d.meals.map((m) => `<div class="meal"><span>${esc(cap(m.meal))}</span><span class="num">${whole(m.totals.calories)} kcal</span></div>` +
