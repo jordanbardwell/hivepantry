@@ -76,8 +76,10 @@ A recipe is a saved food that has a list of ingredients. Thus, `search_foods`, `
 `save_recipe` calculates the nutrients of the recipe from the ingredients:
 
 1. The worker adds the nutrients of all ingredients. This sum is the nutrients of the full batch.
-2. The worker divides the batch by `servings`. The result goes in the nutrient columns of the recipe. The default `servings` is 1. Thus, one serving is the full batch.
+2. The worker divides the batch by `servings`. The result goes in the nutrient columns of the recipe.
 3. `recipe_total_grams` is the weight of the batch after cooking. `serving_grams` is `recipe_total_grams` divided by `servings`. Thus, an agent can log a recipe by grams.
+
+If the caller does not send `servings`, and the weight of the batch is known, one serving is 100 g. The unit is then `100 g`. A new weight keeps servings of 100 g. If the weight is not known, one serving is the full batch. The reply shows a warning in the two cases. Thus, an agent does not log the full batch as "one serving" by mistake.
 
 Cooking changes the weight of food. For example, rice absorbs water, and meat loses water. Thus, the weight of the ingredients is not the weight of the batch. If the caller does not send `total_grams`, the worker uses the sum of the ingredient weights. The reply then shows a warning.
 
@@ -87,7 +89,7 @@ An ingredient can be another recipe. The ingredient keeps a copy of the nutrient
 
 Only `save_recipe` can change the nutrients of a recipe. `save_food` returns 409 `conflict` for a recipe.
 
-`recipe_batch_at` is the start time of the current batch. A `save_recipe` call with `ingredients` or `total_grams` starts a new batch. `get_recipe` adds the entries of the recipe that agents made after this time. Thus, it shows the grams and servings that remain. The worker keeps only one batch for each recipe. When a new batch starts, the remainder of the old batch is not counted.
+`recipe_batch_at` is the start time of the current batch. A `save_recipe` call with `ingredients` or `total_grams` starts a new batch. `get_recipe` adds the entries of the recipe that the person ate after this time. Thus, it shows the grams and servings that remain. The worker uses `consumed_at` of each entry. If an entry has only a day, it counts if the day is on or after the day of the batch. Thus, a meal from the old batch that an agent logs late does not count against the new batch. The worker keeps only one batch for each recipe. When a new batch starts, the remainder of the old batch is not counted.
 
 ### Days and time zone
 
@@ -122,7 +124,7 @@ The tools are the product. `src/tools.ts` has the only list of tools. MCP regist
 | `delete_food` | write | Marks a food or a recipe as deleted. Logged entries keep their copy of the nutrients. |
 | `save_recipe` | write | Makes or updates a recipe from its ingredients and the weight of the cooked batch. The same name updates the recipe. Fields that you do not send keep their values. Returns the recipe and warnings. |
 | `get_recipe` | read | Shows the ingredients, the totals of the batch, the nutrients for one serving and for 100 g, and the quantity that remains of the current batch. |
-| `log_food` | write | Logs a food by `food_id`, or by name with nutrients. `save_food` also saves the food. Accepts servings or grams. Returns the entry, the totals for the day, and the quantity that remains for each goal. |
+| `log_food` | write | Logs a food by `food_id`, or by name with nutrients. `save_food` also saves the food. Accepts servings or grams. Returns the entry, the totals for the day, and the quantity that remains for each goal. If the entry has more than 2000 kcal, the reply also has `warnings`. |
 | `update_entry` | write | Changes the servings, grams, meal, day, time, or note. |
 | `delete_entry` | write | Marks an entry as deleted. |
 | `get_day` | read | Shows one day by meal, with totals, goals, and the quantity that remains. |

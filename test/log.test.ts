@@ -78,6 +78,12 @@ describe("log_food", () => {
     expect(undated.entry).toMatchObject({ consumed_at: null, meal: "other" });
   });
 
+  it("warns about an entry that is larger than most meals", async () => {
+    const big = await data(agent, "log_food", { name: "Whole pot", calories: 2400, protein_g: 150, carbs_g: 300, fat_g: 60, date: "2026-10-20" });
+    expect(big.warnings[0]).toContain("2400 kcal");
+    expect((await data(agent, "log_food", { name: "Apple", calories: 95, protein_g: 0.5, carbs_g: 25, fat_g: 0.3, date: "2026-10-20" })).warnings).toBeUndefined();
+  });
+
   it("replays a retry with the same idempotency key", async () => {
     const args = { name: "Egg", calories: 70, protein_g: 6, carbs_g: 0.5, fat_g: 5, date: "2026-10-20", idempotency_key: "egg-1" };
     const first = await data(agent, "log_food", args);

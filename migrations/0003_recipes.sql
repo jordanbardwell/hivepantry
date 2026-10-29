@@ -5,7 +5,7 @@
 ALTER TABLE foods ADD COLUMN recipe_servings REAL;
 -- The weight of the finished batch in grams, if known. serving_grams = recipe_total_grams / recipe_servings.
 ALTER TABLE foods ADD COLUMN recipe_total_grams REAL;
--- When the current batch started. Entries of the recipe logged after this time count as eaten from it.
+-- When the current batch started. Entries of the recipe eaten after this time count as eaten from it.
 ALTER TABLE foods ADD COLUMN recipe_batch_at TEXT;
 
 CREATE TABLE recipe_ingredients (
@@ -31,4 +31,4 @@ CREATE TABLE recipe_ingredients (
   created_at TEXT NOT NULL
 );
 CREATE INDEX recipe_ingredients_recipe ON recipe_ingredients (recipe_id, position);
-CREATE INDEX entries_food ON entries (food_id, created_at) WHERE deleted_at IS NULL;
+CREATE INDEX entries_food ON entries (food_id) WHERE deleted_at IS NULL;

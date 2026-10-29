@@ -110,8 +110,13 @@ export const saveRecipeSchema = z.object({
     .nullable()
     .optional()
     .describe("Weight of the whole finished batch in grams, after cooking, without the pot. Lets you log by grams eaten. Default: the sum of the ingredient grams."),
-  servings: z.number().positive().max(1000).optional().describe("How many servings the batch makes. Default 1, so one serving is the whole batch."),
-  serving_unit: text(40).min(1).optional().describe('What to call one serving, for example "bowl". Default "serving", or "batch" when servings is 1.'),
+  servings: z
+    .number()
+    .positive()
+    .max(1000)
+    .optional()
+    .describe("How many servings the batch makes. Ask the person. Default: one serving is 100 g when the weight is known, or else the whole batch."),
+  serving_unit: text(40).min(1).optional().describe('What to call one serving, for example "bowl". Default "serving", "100 g", or "batch".'),
   notes: text(1000).nullable().optional(),
 });
 

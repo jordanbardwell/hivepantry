@@ -2,10 +2,14 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { call, data, mint, reset } from "./helpers";
 
 let agent: string;
+let today: string;
 beforeEach(async () => {
   await reset();
   agent = await mint("claude");
+  today = (await data(agent, "whoami")).today;
 });
+
+// Batches count meals eaten after the batch was saved, so these tests log meals now, not on a past day.
 
 // Per 100 g raw, so ingredients go in by grams.
 const chicken = { name: "Chicken thigh, raw", serving_size: 100, serving_unit: "g", serving_grams: 100, calories: 177, protein_g: 24, carbs_g: 0, fat_g: 8.4 };
@@ -44,7 +48,8 @@ describe("save_recipe", () => {
     expect(recipe.incomplete_nutrients).toEqual(["fiber_g"]);
     expect(saved.warnings.join(" ")).toContain("fiber_g");
 
-    const logged = await data(agent, "log_food", { food_id: recipe.id, grams: 500, meal: "lunch", date: "2026-10-20" });
+    const logged = await data(agent, "log_food", { food_id: recipe.id, grams: 500, meal: "lunch" });
+    expect(logged.warnings).toBeUndefined();
     expect(logged.entry).toMatchObject({ name: "Chicken and rice", meal: "lunch", servings: 1, grams: 500 });
     expect(logged.entry.totals.calories).toBeCloseTo(683.2, 1);
     expect(logged.entry.totals.fat_g).toBe(17.6);
@@ -64,6 +69,7 @@ describe("save_recipe", () => {
     const recipes = await data(agent, "search_foods", { kind: "recipe" });
     expect(recipes.foods.map((f: any) => f.id)).toEqual([recipe.id]);
     expect(recipes.foods[0].is_recipe).toBe(true);
+    expect(recipes.foods[0].per_serving.calories).toBe(683.2);
     const foods = await data(agent, "search_foods", { kind: "food", query: "chicken" });
     expect(foods.foods.map((f: any) => f.name)).toEqual(["Chicken thigh, raw"]);
     expect((await data(agent, "search_foods", { query: "chicken" })).foods).toHaveLength(2);
@@ -71,10 +77,10 @@ describe("save_recipe", () => {
 
   it("uses the raw weight when there is no cooked weight, and says so", async () => {
     const saved = await data(agent, "save_recipe", { name: "Salad", ingredients: [{ ...broccoli, grams: 200 }, { ...oil, servings: 1 }] });
-    expect(saved.recipe).toMatchObject({ servings: 1, serving_unit: "batch", total_grams: 213.5, serving_grams: 213.5 });
+    expect(saved.recipe).toMatchObject({ total_grams: 213.5, serving_grams: 100, serving_unit: "100 g" });
     expect(saved.warnings.join(" ")).toContain("raw weight");
-    const logged = await data(agent, "log_food", { food_id: saved.recipe.id, grams: 106.75, date: "2026-10-20" });
-    expect(logged.entry.servings).toBe(0.5);
+    const logged = await data(agent, "log_food", { food_id: saved.recipe.id, grams: 50, date: "2026-10-20" });
+    expect(logged.entry).toMatchObject({ servings: 0.5, grams: 50 });
   });
 
   it("needs a weight to log by grams, and still logs by servings", async () => {
@@ -87,13 +93,13 @@ describe("save_recipe", () => {
     expect(saved.recipe.per_serving.calories).toBe(400);
     expect(saved.warnings.join(" ")).toContain("cannot be logged by grams");
     expect((await call(agent, "log_food", { food_id: saved.recipe.id, grams: 300 })).status).toBe(400);
-    await data(agent, "log_food", { food_id: saved.recipe.id, servings: 1.5, date: "2026-10-20" });
+    await data(agent, "log_food", { food_id: saved.recipe.id, servings: 1.5 });
     expect((await data(agent, "get_recipe", { id: saved.recipe.id })).recipe.batch).toMatchObject({ eaten_grams: null, left_grams: null, left_servings: 2.5 });
   });
 
   it("starts a new batch when cooked again, and keeps past entries", async () => {
     const { recipe } = await chickenDish();
-    await data(agent, "log_food", { food_id: recipe.id, grams: 500, date: "2026-10-20" });
+    await data(agent, "log_food", { food_id: recipe.id, grams: 500 });
 
     // Renaming or new notes does not start a new batch.
     const renamed = await data(agent, "save_recipe", { id: recipe.id, name: "Chicken & rice", notes: "Mom's" });
@@ -106,13 +112,46 @@ describe("save_recipe", () => {
     const again = await data(agent, "save_recipe", { id: recipe.id, name: "Chicken & rice", total_grams: 4000 });
     expect(again.recipe.batch).toMatchObject({ entry_count: 0, left_grams: 4000 });
     expect(again.recipe.per_100g.calories).toBeCloseTo(170.8, 1);
-    expect((await data(agent, "get_day", { date: "2026-10-20" })).totals.calories).toBeCloseTo(683.2, 1);
+    expect((await data(agent, "get_day", { date: today })).totals.calories).toBeCloseTo(683.2, 1);
 
     // New ingredients without a new weight keep the saved weight, with a warning.
     const changed = await data(agent, "save_recipe", { name: "chicken & RICE", ingredients: [{ ...rice, grams: 500 }] });
     expect(changed.recipe.id).toBe(recipe.id);
     expect(changed.recipe.total_grams).toBe(4000);
     expect(changed.warnings.join(" ")).toContain("stays at the saved 4000 g");
+  });
+
+  it("counts a meal by when it was eaten, so a late log of the old batch does not count against the new one", async () => {
+    const { recipe } = await chickenDish();
+    const hourAgo = new Date(Date.now() - 3_600_000).toISOString();
+    await data(agent, "log_food", { food_id: recipe.id, grams: 300, consumed_at: hourAgo });
+    await data(agent, "log_food", { food_id: recipe.id, grams: 300, date: "2026-01-02" });
+    expect((await data(agent, "get_recipe", { id: recipe.id })).recipe.batch).toMatchObject({ entry_count: 0, left_grams: 5000 });
+
+    // A meal with a time after the batch counts. A meal with only today's date counts too.
+    await data(agent, "log_food", { food_id: recipe.id, grams: 400 });
+    await data(agent, "log_food", { food_id: recipe.id, grams: 100, date: today });
+    expect((await data(agent, "get_recipe", { id: recipe.id })).recipe.batch).toMatchObject({ entry_count: 2, eaten_grams: 500, left_grams: 4500 });
+  });
+
+  it("makes one serving 100 g of a weighed batch when servings is not sent, never the whole pot", async () => {
+    const saved = await data(agent, "save_recipe", { name: "Chili", ingredients: [{ ...rice, grams: 500 }], total_grams: 1200 });
+    expect(saved.recipe).toMatchObject({ servings: 12, serving_unit: "100 g", serving_grams: 100 });
+    expect(saved.recipe.per_serving.calories).toBeCloseTo(152.1, 1);
+    expect(saved.warnings.join(" ")).toContain("one serving is 100 g");
+    expect(saved.recipe.batch.left_servings).toBe(12);
+
+    // A new weight keeps 100 g servings. Then a real count of servings replaces them.
+    const reweighed = await data(agent, "save_recipe", { id: saved.recipe.id, name: "Chili", total_grams: 1500 });
+    expect(reweighed.recipe).toMatchObject({ servings: 15, serving_unit: "100 g", serving_grams: 100 });
+    const counted = await data(agent, "save_recipe", { id: saved.recipe.id, name: "Chili", servings: 6 });
+    expect(counted.recipe).toMatchObject({ servings: 6, serving_unit: "serving", serving_grams: 250 });
+    expect((await data(agent, "save_recipe", { id: saved.recipe.id, name: "Chili", total_grams: 1800 })).recipe).toMatchObject({ servings: 6, serving_grams: 300 });
+
+    // Without a weight, one serving is the batch, and the reply says so.
+    const unweighed = await data(agent, "save_recipe", { name: "Soup", ingredients: [{ name: "Soup pack", calories: 800, protein_g: 40, carbs_g: 90, fat_g: 30 }] });
+    expect(unweighed.recipe).toMatchObject({ servings: 1, serving_unit: "batch" });
+    expect(unweighed.warnings.join(" ")).toContain("one serving is the full batch");
   });
 
   it("can use another recipe as an ingredient, and keeps its own snapshot", async () => {

@@ -40,7 +40,7 @@ Days have the format `YYYY-MM-DD` in the `PANTRY_TZ` time zone. Times have the I
 | `search_foods` | `query?`, `barcode?`, `kind?` (`food` or `recipe`), `limit?` (1 to 50, default 10) |
 | `save_food` | `id?`, `name`, `brand?`, `serving_size?`, `serving_unit?`, `serving_grams?`, `calories`, `protein_g`, `carbs_g`, `fat_g`, `fiber_g?`, `sugar_g?`, `sodium_mg?`, `barcode?`, `notes?` |
 | `delete_food` | `id` |
-| `save_recipe` | `id?`, `name`, `ingredients` (1 to 100, optional on an update), `total_grams?`, `servings?` (default 1), `serving_unit?`, `notes?` |
+| `save_recipe` | `id?`, `name`, `ingredients` (1 to 100, optional on an update), `total_grams?`, `servings?`, `serving_unit?`, `notes?` |
 | `get_recipe` | `id` |
 | `log_food` | `food_id`, or `name` with `calories`, `protein_g`, `carbs_g`, and `fat_g`. Optional: `brand`, the serving fields, `fiber_g`, `sugar_g`, `sodium_mg`, `save_food`. Then `servings?` or `grams?`, `meal?`, `date?`, `consumed_at?`, `note?`, `idempotency_key?` |
 | `update_entry` | `id`, `servings?` or `grams?`, `meal?`, `date?`, `consumed_at?`, `note?` |
@@ -56,6 +56,10 @@ Days have the format `YYYY-MM-DD` in the `PANTRY_TZ` time zone. Times have the I
 Each item in `ingredients` has the same food fields as `log_food`: `food_id`, or `name` with `calories`, `protein_g`, `carbs_g`, and `fat_g` for one serving. Optional: `brand`, the serving fields, `fiber_g`, `sugar_g`, `sodium_mg`, `save_food`. Then `servings?` or `grams?`, and `note?`.
 
 `total_grams` is the weight of the full batch after cooking. Do not include the weight of the pot. With `total_grams`, you can log the recipe by grams with `log_food`.
+
+If you do not send `servings`, one serving is 100 g when the weight is known. If the weight is not known, one serving is the full batch. To rename a recipe, send its `id`. If you do not send the `id`, `save_recipe` makes a second recipe.
+
+If one `log_food` entry has more than 2000 kcal, the reply also has `warnings`. Examine the amount.
 
 The `log_food` and `get_day` entries also show `grams`. This value is `null` if the food does not have `serving_grams`.
 

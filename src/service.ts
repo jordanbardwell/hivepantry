@@ -26,6 +26,7 @@ export type Ctx = { env: Env; access: Access; zone: string; now: Date };
 const CORE: Nutrient[] = ["calories", "protein_g", "carbs_g", "fat_g"];
 const LB_PER_KG = 2.2046226218;
 const MAX_RANGE_DAYS = 366;
+const LARGE_ENTRY_KCAL = 2000;
 
 type FoodRow = {
   id: string;
@@ -109,7 +110,11 @@ function nutrientsOf(row: Partial<Nutrients>): Nutrients {
 }
 
 function rounded(values: Nutrients): Nutrients {
-  return Object.fromEntries(NUTRIENTS.map((n) => [n, round(values[n])])) as Nutrients;
+  return roundedTo(values, 1);
+}
+
+function roundedTo(values: Nutrients, digits: number): Nutrients {
+  return Object.fromEntries(NUTRIENTS.map((n) => [n, round(values[n], digits)])) as Nutrients;
 }
 
 function scaled(perServing: Nutrients, servings: number): Nutrients {
@@ -183,7 +188,8 @@ function foodOut(row: FoodRow) {
     serving_size: row.serving_size,
     serving_unit: row.serving_unit,
     serving_grams: row.serving_grams,
-    per_serving: nutrientsOf(row),
+    // A recipe's amounts are calculated, so round away the float noise. A plain food shows what was saved.
+    per_serving: row.recipe_servings === null ? nutrientsOf(row) : roundedTo(nutrientsOf(row), 2),
     barcode: row.barcode,
     notes: row.notes,
     is_recipe: row.recipe_servings !== null,
@@ -475,7 +481,10 @@ export async function logFood(ctx: Ctx, input: z.infer<typeof logFoodSchema>) {
     }
     throw err;
   }
-  return { entry: entryOut(await loadEntry(ctx.env, id)), replayed: false, day: await dayTotals(ctx.env, date) };
+  const entry = entryOut(await loadEntry(ctx.env, id));
+  // A typo or a whole recipe batch logged as "one serving" shows up here. Tell the agent to check.
+  const warnings = entry.totals.calories! > LARGE_ENTRY_KCAL ? [`This entry is ${entry.totals.calories} kcal, more than most meals. Check the amount with the person, and fix it with update_entry if it is wrong.`] : [];
+  return { entry, replayed: false, day: await dayTotals(ctx.env, date), ...(warnings.length ? { warnings } : {}) };
 }
 
 export async function updateEntry(ctx: Ctx, input: z.infer<typeof updateEntrySchema>) {
@@ -664,6 +673,7 @@ export async function deleteWeight(ctx: Ctx, input: z.infer<typeof idSchema>) {
 type Ingredient = { source: Source; servings: number; note: string | null };
 
 const OPTIONAL: Nutrient[] = NUTRIENTS.filter((n) => !CORE.includes(n));
+const PER_100G = "100 g";
 
 function ingredientGrams(servings: number, servingGrams: number | null): number | null {
   return servingGrams === null ? null : servings * servingGrams;
@@ -685,7 +695,8 @@ async function loadRecipe(env: Env, id: string): Promise<FoodRow> {
   return food;
 }
 
-async function recipeOut(env: Env, food: FoodRow) {
+async function recipeOut(ctx: Ctx, food: FoodRow) {
+  const env = ctx.env;
   const servings = food.recipe_servings!;
   const totalGrams = food.recipe_total_grams;
   const rows = await loadIngredients(env, food.id);
@@ -693,11 +704,15 @@ async function recipeOut(env: Env, food: FoodRow) {
   const batchTotals = sum(ingredients.map((i) => i.totals));
   const rawGrams = ingredients.every((i) => i.grams !== null) ? ingredients.reduce((a, i) => a + i.grams!, 0) : null;
 
-  // What was logged from the current batch: entries of this recipe made since the batch started.
+  // What was eaten from the current batch: entries of this recipe eaten since the batch started. An
+  // entry with a day but no time counts from the day the batch started. Thus, a meal from the old
+  // batch that is logged late does not count against the new one.
+  const batchAt = food.recipe_batch_at ?? food.created_at;
   const eaten = await env.DB.prepare(
-    "SELECT COUNT(*) AS entry_count, SUM(servings) AS servings, SUM(servings * serving_grams) AS grams FROM entries WHERE food_id = ? AND deleted_at IS NULL AND created_at >= ?",
+    `SELECT COUNT(*) AS entry_count, SUM(servings) AS servings, SUM(servings * serving_grams) AS grams FROM entries
+     WHERE food_id = ? AND deleted_at IS NULL AND (consumed_at >= ? OR (consumed_at IS NULL AND local_date >= ?))`,
   )
-    .bind(food.id, food.recipe_batch_at ?? "")
+    .bind(food.id, batchAt, localDate(new Date(batchAt), ctx.zone))
     .first<{ entry_count: number; servings: number | null; grams: number | null }>();
   const eatenGrams = totalGrams === null ? null : (eaten?.grams ?? 0);
   const eatenServings = totalGrams === null ? (eaten?.servings ?? 0) : eatenGrams! / food.serving_grams!;
@@ -740,7 +755,7 @@ async function recipeOut(env: Env, food: FoodRow) {
 }
 
 export async function getRecipe(ctx: Ctx, input: z.infer<typeof idSchema>) {
-  return { recipe: await recipeOut(ctx.env, await loadRecipe(ctx.env, input.id)) };
+  return { recipe: await recipeOut(ctx, await loadRecipe(ctx.env, input.id)) };
 }
 
 export async function saveRecipe(ctx: Ctx, input: z.infer<typeof saveRecipeSchema>) {
@@ -803,15 +818,26 @@ export async function saveRecipe(ctx: Ctx, input: z.infer<typeof saveRecipeSchem
     warnings.push(`${n} is known for only some ingredients, so the recipe value is too low.`);
   }
 
-  const servings = input.servings ?? existing?.recipe_servings ?? 1;
-  const savedUnit = existing && existing.serving_unit !== "batch" && existing.serving_unit !== "serving" ? existing.serving_unit : null;
+  // Without a count of servings, one serving of a weighed batch is 100 g, so "one serving" is never
+  // the whole pot by mistake. A batch without a weight stays one serving.
+  const DEFAULT_UNITS = ["batch", "serving", PER_100G];
+  const per100g = input.servings === undefined && input.serving_unit === undefined && totalGrams !== null && (!existing || existing.serving_unit === PER_100G || existing.serving_unit === "batch");
+  const servings = input.servings ?? (per100g ? totalGrams! / 100 : (existing?.recipe_servings ?? 1));
+  const savedUnit = existing && !DEFAULT_UNITS.includes(existing.serving_unit) ? existing.serving_unit : null;
+  if (input.servings === undefined && !existing) {
+    warnings.push(
+      per100g
+        ? "servings was not sent, so one serving is 100 g. Log this recipe by grams, or ask the person how many servings the batch makes and send servings."
+        : "servings was not sent, so one serving is the full batch. Ask the person how many servings the batch makes and send servings.",
+    );
+  }
   // Sending ingredients or a weight means a new batch was cooked, so the leftover count starts again.
   const newBatch = !existing || input.ingredients !== undefined || input.total_grams !== undefined;
   const values = {
     name: input.name,
     name_key: key,
     serving_size: 1,
-    serving_unit: input.serving_unit ?? savedUnit ?? (servings === 1 ? "batch" : "serving"),
+    serving_unit: input.serving_unit ?? (per100g ? PER_100G : (savedUnit ?? (servings === 1 ? "batch" : "serving"))),
     serving_grams: totalGrams === null ? null : totalGrams / servings,
     ...scaled(batchTotals, 1 / servings),
     notes: input.notes !== undefined ? input.notes : (existing?.notes ?? null),
@@ -854,5 +880,5 @@ export async function saveRecipe(ctx: Ctx, input: z.infer<typeof saveRecipeSchem
     if (isUniqueViolation(err)) throw new PantryError("conflict", `Another saved food or recipe is already named "${input.name}". Update that one instead.`);
     throw err;
   }
-  return { recipe: await recipeOut(ctx.env, await loadFood(ctx.env, id)), created: !existing, warnings };
+  return { recipe: await recipeOut(ctx, await loadFood(ctx.env, id)), created: !existing, warnings };
 }
