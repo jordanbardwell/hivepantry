@@ -159,6 +159,12 @@
   .status { display: inline-flex; align-items: center; gap: 8px; }
   .status i { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3); }
   .status i.on { background: var(--good); }
+  .token-panel { border-color: #555; scroll-margin-top: 140px; }
+  .tp-grid { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 10px 14px; align-items: center; margin: 14px 0; }
+  .tp-grid .k { color: var(--ink-3); font-size: 12px; }
+  .tp-actions { margin-bottom: 12px; }
+  details summary { cursor: pointer; color: var(--ink-2); margin-bottom: 10px; }
+  details pre { max-height: 360px; overflow-y: auto; word-break: normal; }
   .tag { font-size: 11px; border: 1px solid var(--line-2); border-radius: 6px; padding: 1px 6px; color: var(--ink-2); white-space: nowrap; }
 
   code, pre { font-family: var(--mono); font-size: 12px; }
@@ -174,6 +180,8 @@
   /* Narrow screens and touch screens. These come last so that they win over the rules above. */
   @media (max-width: 1080px) { .c3, .c4, .c5 { grid-column: span 6; } .c7, .c8 { grid-column: span 12; } .cmd { width: 260px; } }
   @media (max-width: 720px) {
+    .tp-grid { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+    .tp-grid .k { margin-top: 6px; }
     .grid > * { grid-column: span 12; }
     header { flex-wrap: wrap; gap: 10px; padding: 10px 14px; }
     .brand-name, .who { display: none; }
@@ -319,10 +327,20 @@
             <button class="btn w" id="mint">Make token</button>
           </div>
           <p class="error" id="mint-error"></p>
-          <div id="minted" hidden>
-            <p>Copy this token now. The console shows it one time only.</p>
-            <div class="row"><div class="token grow" id="minted-token"></div><button class="btn" id="copy-token">Copy</button></div>
+        </div>
+        <div class="card c12 token-panel" id="token-panel" hidden>
+          <h2><span id="tp-title"></span> <span class="r"><button class="btn" id="tp-close">Close</button></span></h2>
+          <p class="muted">Copy the setup prompt and paste it to your AI agent. The agent connects to HivePantry, checks the connection, and tells you what it will log. The prompt holds the token, so paste it only to the agent. You can open this again from the Agents table.</p>
+          <div class="tp-grid">
+            <span class="k">Token</span>
+            <div class="row"><div class="token grow" id="tp-token"></div><button class="btn" id="tp-copy-token">Copy</button></div>
+            <span class="k">MCP address</span>
+            <div class="row"><div class="token grow" id="tp-mcp"></div><button class="btn" id="tp-copy-mcp">Copy</button></div>
+            <span class="k">Access</span>
+            <div class="row"><select id="tp-scopes" aria-label="Access"><option value="read,write">Read and write</option><option value="read">Read only</option></select><span class="muted" id="tp-scopes-note"></span></div>
           </div>
+          <div class="row tp-actions"><button class="btn w" id="tp-copy-prompt">Copy setup prompt</button></div>
+          <details><summary>Show the setup prompt</summary><pre id="tp-prompt"></pre></details>
         </div>
         <div class="card c12"><h2>Agents</h2><div class="table-wrap"><table id="agents-table"></table></div></div>
       </div>
@@ -720,9 +738,105 @@
         agents.flatMap((a) => (a.tokens.length ? a.tokens : [null]).map((t, i) => `<tr>
           <td>${i ? "" : `<span class="status"><i class="${!a.disabled_at && a.tokens.some(activeToken) ? "on" : ""}"></i>${esc(a.name || a.id)}</span>${a.disabled_at ? ' <span class="muted">disabled</span>' : ""}`}</td>
           <td>${t ? `<code class="col-token">${esc(t.id.slice(-8))}</code>${t.revoked_at ? ' <span class="muted">revoked</span>' : t.expires_at ? ` <span class="muted">expires ${esc(t.expires_at.slice(0, 10))}</span>` : ' <span class="muted col-token">active</span>'}` : "–"}</td>
-          <td>${t ? `<span class="tag">${esc(t.scopes.join(" + "))}</span>` : ""}</td><td>${t ? esc(ago(t.last_used_at)) : ""}</td>
-          <td class="r">${t && !t.revoked_at ? `<button class="btn danger" data-revoke="${esc(t.id)}">Revoke</button>` : ""}</td></tr>`)).join("")
+          <td>${t && !t.revoked_at && !a.disabled_at ? scopeSelect(t) : t ? `<span class="tag">${esc(t.scopes.join(" + "))}</span>` : ""}</td><td>${t ? esc(ago(t.last_used_at)) : ""}</td>
+          <td class="r">${t && !t.revoked_at && !a.disabled_at ? `${t.viewable ? `<button class="btn" data-show-token="${esc(t.id)}">Show</button> ` : ""}<button class="btn danger" data-revoke="${esc(t.id)}">Revoke</button>` : ""}</td></tr>`)).join("")
       : `<tr><td class="empty">There are no agents. Make a token above.</td></tr>`;
+  }
+
+  const scopeSelect = (t) => {
+    const value = t.scopes.includes("write") ? "read,write" : "read";
+    return `<select data-scopes-token="${esc(t.id)}" aria-label="Access">${[["read,write", "Read and write"], ["read", "Read only"]]
+      .map(([v, label]) => `<option value="${v}"${v === value ? " selected" : ""}>${label}</option>`).join("")}</select>`;
+  };
+
+  // ---------- token panel and the setup prompt for an agent ----------
+
+  let panel = null;
+
+  // The text to paste into an AI agent. It holds the token, so the console builds it only here.
+  function setupPrompt(t) {
+    const mcp = `${location.origin}/mcp`;
+    const canWrite = t.scopes.includes("write");
+    const json = JSON.stringify({ mcpServers: { pantry: { type: "http", url: mcp, headers: { Authorization: `Bearer ${t.token}` } } } }, null, 2);
+    return [
+      "Set up HivePantry, my food and calorie log. HivePantry is an MCP server. It keeps the food that I eat, my daily calories and macronutrients (protein, carbohydrates, fat), my daily goals, my saved foods and recipes, and my body weight.",
+      "",
+      "Step 1. Add the MCP server.",
+      "- Name: pantry",
+      "- Type: Streamable HTTP",
+      `- URL: ${mcp}`,
+      `- Header: Authorization: Bearer ${t.token}`,
+      "",
+      "If you are Claude Code, run this command:",
+      `claude mcp add --transport http pantry ${mcp} --header "Authorization: Bearer ${t.token}"`,
+      "",
+      "If you use a JSON settings file (Claude Desktop, Cursor, Windsurf, and others), add this:",
+      json,
+      "",
+      `If you cannot use MCP, call each tool as REST: POST ${location.origin}/v1/tools/<tool name> with the same Authorization header and a JSON body.`,
+      "If you cannot add a server yourself, tell me the exact steps to do it.",
+      "Keep the token private. Do not write it in notes, memory files, or chat logs.",
+      "",
+      "Step 2. Check the connection.",
+      `- Call whoami. It must show the agent "${t.agent_id}" with the scopes ${t.scopes.join(" and ")}. It also shows my time zone and today's date.`,
+      "- Call guide. It tells you how to log food and read totals. Obey it.",
+      "",
+      "Step 3. Use HivePantry.",
+      ...(canWrite
+        ? [
+            "- When I tell you what I ate, log it. Call search_foods first. If the food is saved, call log_food with food_id and servings or grams.",
+            "- If the food is not saved, call log_food with name, calories, protein_g, carbs_g, and fat_g for one serving. If there is no label, estimate from typical values and tell me that you estimated.",
+            "- Add save_food: true for a food that I eat frequently, so that the next log is one search.",
+            "- For a dish that I cook, call save_recipe with each ingredient, its amount, and total_grams (the cooked weight of the batch without the pot). Then log my portion by grams.",
+            "- Send meal (breakfast, lunch, dinner, snack, or other). For a past meal, send date as YYYY-MM-DD or consumed_at.",
+            "- Send an idempotency_key with each log_food and log_weight, so that a retry does not log twice.",
+            "- When I tell you my weight, call log_weight in kg or lb.",
+            "- To correct a mistake, call update_entry or delete_entry.",
+            "- After each log, tell me the calories and the protein that remain for the day. The log_food reply has these values.",
+          ]
+        : ["- This token can only read. Do not try to log food or weight. If I ask you to log something, tell me that the token is read only."]),
+      "- To answer questions about my day or my progress, call get_day, get_trends, get_goals, or get_weights.",
+      "- Read the warnings in each reply and tell me about them.",
+      "",
+      "Step 4. Remember HivePantry.",
+      `Add a short note to your own memory or instructions file. It must say: "Use the pantry MCP server to ${canWrite ? "log my food and weight and to " : ""}read my calories and goals. Call guide first."`,
+      "",
+      "Step 5. Tell me how it works.",
+      "When you finish, tell me in a few short sentences:",
+      "- what HivePantry is,",
+      `- what you will ${canWrite ? "log and " : ""}read there,`,
+      `- how I can see and correct my log in the console at ${location.origin}/console.`,
+    ].join("\n");
+  }
+
+  function showPanel(t, fresh) {
+    panel = t;
+    $("tp-title").textContent = fresh ? `${t.name} is ready` : t.name;
+    $("tp-token").textContent = t.token;
+    $("tp-mcp").textContent = `${location.origin}/mcp`;
+    $("tp-scopes").value = t.scopes.includes("write") ? "read,write" : "read";
+    $("tp-scopes-note").textContent = "";
+    $("tp-prompt").textContent = setupPrompt(t);
+    $("token-panel").hidden = false;
+    $("token-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  async function openToken(id) {
+    const t = await api(`/console/api/admin/tokens/${encodeURIComponent(id)}`);
+    if (!t.token) return toast("This token was made before the console kept tokens. Make a new token for this agent, then revoke the old one.", true);
+    showPanel(t, false);
+  }
+
+  async function changeScopes(id, value) {
+    const { scopes } = await api(`/console/api/admin/tokens/${encodeURIComponent(id)}`, { scopes: value.split(",") }, "PUT");
+    if (panel && panel.token_id === id) {
+      panel.scopes = scopes;
+      $("tp-scopes").value = value;
+      $("tp-prompt").textContent = setupPrompt(panel);
+      $("tp-scopes-note").textContent = "Saved. Copy the prompt again if the agent is not set up yet.";
+    }
+    toast(scopes.includes("write") ? "Access changed to read and write" : "Access changed to read only");
+    await loadAgents();
   }
 
   function loadConnect() {
@@ -911,14 +1025,23 @@
       if (!agentId) throw new Error("Type a name for the agent, for example Claude Code.");
       if (agentId === "owner") throw new Error("The name owner is for the admin. Use a different name.");
       const minted = await api("/console/api/admin/tokens", { agent_id: agentId, ...(name !== agentId ? { name } : {}), scopes: $("agent-scopes").value.split(","), ...($("agent-expiry").value ? { expires_in_days: Number($("agent-expiry").value) } : {}) });
-      $("minted-token").textContent = minted.token;
-      $("minted").hidden = false;
+      $("agent-id").value = "";
+      showPanel({ ...minted, name: name || agentId }, true);
       await loadAgents();
     } catch (err) {
       $("mint-error").textContent = err.message;
     }
   });
-  $("copy-token").addEventListener("click", () => navigator.clipboard.writeText($("minted-token").textContent).then(() => toast("Token copied"), fail));
+  const copy = (text, done) => navigator.clipboard.writeText(text).then(() => toast(done), fail);
+  $("tp-copy-token").addEventListener("click", () => copy(panel.token, "Token copied"));
+  $("tp-copy-mcp").addEventListener("click", () => copy(`${location.origin}/mcp`, "MCP address copied"));
+  $("tp-copy-prompt").addEventListener("click", () => copy(setupPrompt(panel), "Setup prompt copied. Paste it to your agent."));
+  $("tp-scopes").addEventListener("change", () => changeScopes(panel.token_id, $("tp-scopes").value).catch(fail));
+  $("tp-close").addEventListener("click", () => { $("token-panel").hidden = true; panel = null; });
+  document.addEventListener("change", (e) => {
+    const sel = e.target.closest?.("[data-scopes-token]");
+    if (sel) changeScopes(sel.dataset.scopesToken, sel.value).catch(fail);
+  });
   document.addEventListener("click", async (e) => {
     const pickBtn = e.target.closest("[data-pick]");
     if (pickBtn) return pick(Number(pickBtn.dataset.pick));
@@ -926,11 +1049,14 @@
     if (bar) return openDay(bar.getAttribute("data-date"));
     const go = e.target.closest("[data-goto]");
     if (go) return show(go.dataset.goto);
+    const showBtn = e.target.closest("[data-show-token]");
+    if (showBtn) return openToken(showBtn.dataset.showToken).catch(fail);
     const target = e.target.closest("[data-revoke], [data-delete-entry]");
     if (!target) return;
     try {
       if (target.dataset.revoke && confirm("Revoke this token? The agent that uses it will stop.")) {
         await api(`/console/api/admin/tokens/${encodeURIComponent(target.dataset.revoke)}`, null, "DELETE");
+        if (panel && panel.token_id === target.dataset.revoke) $("tp-close").click();
         await loadAgents();
       }
       if (target.dataset.deleteEntry && confirm("Delete this entry?")) {

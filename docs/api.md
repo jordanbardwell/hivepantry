@@ -88,7 +88,9 @@ Only the admin can use these routes.
 | Route | Body | Result |
 | --- | --- | --- |
 | `GET /v1/admin/agents` | | Shows the agents and their tokens. It does not show token values. |
-| `POST /v1/admin/tokens` | `agent_id`, `name?`, `scopes?` (default `["read","write"]`), `label?`, `expires_in_days?` (1 to 3650, default no expiry) | Makes the agent if it does not exist. Enables the agent if it is disabled. Returns a new token, `expires_at`, and `mcp_url`. The reply shows the token one time only. |
+| `POST /v1/admin/tokens` | `agent_id`, `name?`, `scopes?` (default `["read","write"]`), `label?`, `expires_in_days?` (1 to 3650, default no expiry) | Makes the agent if it does not exist. Enables the agent if it is disabled. Returns a new token, `expires_at`, and `mcp_url`. |
+| `GET /v1/admin/tokens/<token_id>` | | Returns the token, the agent, and the scopes of an active token. `token` is `null` for a token that was made before migration 0005. |
+| `PUT /v1/admin/tokens/<token_id>` | `scopes` (`["read"]` or `["read","write"]`) | Changes the scopes of an active token. The change applies to the next request of the agent. |
 | `DELETE /v1/admin/tokens/<token_id>` | | Revokes one token. |
 | `DELETE /v1/admin/agents/<agent_id>` | | Disables the agent and revokes all of its tokens. |
 | `POST /v1/admin/time-zone` | `time_zone` (an IANA time zone) | Stores the time zone if there is no stored time zone. The console sends it at the first sign-in. Returns the `time_zone` that the worker uses. |

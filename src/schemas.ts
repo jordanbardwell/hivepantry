@@ -161,6 +161,8 @@ export const logWeightSchema = z.object({
   idempotency_key: idempotencyKey.optional(),
 });
 
+export const scopesSchema = z.object({ scopes: z.array(z.enum(["read", "write"])).min(1) });
+
 export const mintSchema = z.object({
   agent_id: z
     .string()

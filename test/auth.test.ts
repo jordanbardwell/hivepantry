@@ -65,6 +65,29 @@ describe("auth", () => {
     expect((await call(writer, "whoami")).status).toBe(401);
   });
 
+  it("shows a token again and changes its access", async () => {
+    const minted = await rest("/v1/admin/tokens", ADMIN, { method: "POST", body: JSON.stringify({ agent_id: "claude-code", name: "Claude Code" }) });
+    const { token, token_id } = minted.json.data;
+    const shown = await rest(`/console/api/admin/tokens/${token_id}`, ADMIN);
+    expect(shown.json.data).toMatchObject({ token, agent_id: "claude-code", name: "Claude Code", scopes: ["read", "write"] });
+    expect((await rest("/v1/admin/agents", ADMIN)).json.data.agents[0].tokens[0].viewable).toBe(true);
+    expect((await rest(`/v1/admin/tokens/${token_id}`, token)).status).toBe(403);
+
+    const food = { name: "Apple", calories: 95, protein_g: 0.5, carbs_g: 25, fat_g: 0.3 };
+    const put = (scopes: unknown) => rest(`/console/api/admin/tokens/${token_id}`, ADMIN, { method: "PUT", body: JSON.stringify({ scopes }) });
+    expect((await put(["read"])).json.data).toEqual({ token_id, scopes: ["read"] });
+    expect((await call(token, "log_food", food)).status).toBe(403);
+    expect((await put(["read", "write"])).status).toBe(200);
+    expect((await call(token, "log_food", food)).status).toBe(200);
+    expect((await put([])).status).toBe(400);
+
+    await rest(`/v1/admin/tokens/${token_id}`, ADMIN, { method: "DELETE" });
+    expect((await rest(`/console/api/admin/tokens/${token_id}`, ADMIN)).status).toBe(404);
+    const stored = await (env as Env).DB.prepare("SELECT token_value FROM tokens WHERE id = ?").bind(token_id).first<{ token_value: string | null }>();
+    expect(stored?.token_value).toBeNull();
+    expect((await put(["read"])).status).toBe(404);
+  });
+
   it("disables an agent and all its tokens", async () => {
     const token = await mint("bot");
     expect((await rest("/v1/admin/agents/bot", ADMIN, { method: "DELETE" })).status).toBe(200);

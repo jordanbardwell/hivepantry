@@ -1,10 +1,10 @@
-import { disableAgent, listAgents, mintToken, revokeToken } from "./admin";
+import { disableAgent, listAgents, mintToken, revokeToken, setTokenScopes, showToken } from "./admin";
 import { authenticate, bearerOf, requireAdmin } from "./auth";
 import { APP_NAME, VERSION } from "./brand";
 import { CONSOLE_PATH, consoleResponse } from "./console";
 import { errorBody, PantryError, toPantryError } from "./errors";
 import { mcpHandler } from "./mcp";
-import { mintSchema } from "./schemas";
+import { mintSchema, scopesSchema } from "./schemas";
 import { adoptTimeZone } from "./time";
 import { callTool, TOOLS, TOOLS_BY_NAME } from "./tools";
 
@@ -91,6 +91,8 @@ export async function handleFetch(request: Request, env: Env, ctx: ExecutionCont
         const minted = await mintToken(env, mintSchema.parse(await readJson(request)));
         return ok({ ...minted, mcp_url: new URL("/mcp", url).toString() }, 201);
       }
+      if (route === "GET tokens" && path.length === 3) return ok(await showToken(env, decodeURIComponent(path[2]!)));
+      if (route === "PUT tokens" && path.length === 3) return ok(await setTokenScopes(env, decodeURIComponent(path[2]!), scopesSchema.parse(await readJson(request))));
       if (route === "DELETE tokens" && path.length === 3) return ok(await revokeToken(env, decodeURIComponent(path[2]!)));
       if (route === "DELETE agents" && path.length === 3) return ok(await disableAgent(env, decodeURIComponent(path[2]!)));
       if (route === "POST time-zone" && path.length === 2) return ok(await adoptTimeZone(env, ((await readJson(request)) as { time_zone?: unknown }).time_zone));
