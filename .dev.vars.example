@@ -1,3 +1,1 @@
 ADMIN_TOKEN=replace-with-an-admin-password-of-16-characters-or-more
-# IANA zone for day boundaries and daily totals. The code default is UTC.
-PANTRY_TZ=UTC

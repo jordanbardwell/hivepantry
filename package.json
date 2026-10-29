@@ -27,12 +27,6 @@
     "bindings": {
       "ADMIN_TOKEN": {
         "description": "Your admin password. Use a minimum of 16 characters. You sign in to /console with it. You make agent tokens there. Keep it in a safe location."
-      },
-      "PANTRY_TZ": {
-        "description": "Your IANA time zone, for example America/New_York. Days and daily totals use this time zone. If you are not sure, keep UTC."
-      },
-      "OWNER_EMAIL": {
-        "description": "Optional. Your email address. The deploy then puts Cloudflare Access in front of the console, and you sign in with a code that Cloudflare sends to this address. Agents continue to use tokens. Use commas between more than one address."
       }
     }
   },

@@ -8,7 +8,7 @@ The **Deploy to Cloudflare** button in the [README](../README.md) makes a new co
 
 - It copies this repository into your GitHub account.
 - It makes the D1 database that `wrangler.jsonc` names.
-- It asks for `ADMIN_TOKEN` and `PANTRY_TZ`.
+- It asks for `ADMIN_TOKEN` only.
 - It deploys the worker with Workers Builds. Workers Builds runs `pnpm run deploy`.
 
 The deploy script is `scripts/deploy.ts`. The script applies the D1 migrations before the new code starts. Then the script deploys the worker with the commit as `GIT_SHA`. Then the script applies the migrations again for a first deploy. You can repeat each step safely.
@@ -21,9 +21,9 @@ The button can read only a public repository.
 
 | Name | Type | Purpose |
 | --- | --- | --- |
-| `ADMIN_TOKEN` | secret, necessary | The owner password. It has a minimum of 16 characters. It signs in to `/console` and calls `/v1/admin`. A change to it does not change the agent tokens. |
-| `PANTRY_TZ` | var | The IANA time zone for days and daily totals. The default is `UTC`. A change moves the start of the day for new entries only. |
-| `OWNER_EMAIL` | var, optional | Your email address. Use commas between more than one address. If you set it, the deploy puts Cloudflare Access in front of the console. Refer to the subsequent section. |
+| `ADMIN_TOKEN` | secret, necessary | The owner password. It has a minimum of 16 characters. It signs in to `/console` and calls `/v1/admin`. A change to it does not change the agent tokens. The deploy form asks only for this setting. |
+| `PANTRY_TZ` | var, optional | The IANA time zone for days and daily totals. If you do not set it, the worker uses the time zone of your browser at the first console sign-in. If it has no time zone, it uses `UTC`. `PANTRY_TZ` has priority over the stored time zone. A change moves the start of the day for new entries only. |
+| `OWNER_EMAIL` | build variable, optional | Your email address. Use commas between more than one address. If you set it, the deploy puts Cloudflare Access in front of the console. Refer to the subsequent section. |
 | `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD` | var | The deploy sets these values. Do not change them. |
 | `GIT_SHA` | var | The deploy script sets this value. |
 
@@ -35,9 +35,18 @@ To change a setting, do these steps:
 
 You can also use this command: `pnpm exec wrangler secret put ADMIN_TOKEN --config wrangler.jsonc`.
 
+`wrangler.jsonc` sets `keep_vars`. Thus, a deploy does not remove a var that you set in the dashboard.
+
 ## Console sign-in with Cloudflare Access
 
 If you set `OWNER_EMAIL`, the deploy puts [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/) in front of the console. Then you do not type the admin password. Access is free for a maximum of 50 users.
+
+The deploy form does not ask for `OWNER_EMAIL`. To set it, do these steps:
+
+1. In the Cloudflare dashboard, open the worker.
+2. Go to **Settings**, then to **Builds**, then to **Variables and secrets**.
+3. Add the build variable `OWNER_EMAIL` with your email address.
+4. Start the deploy again.
 
 The deploy script (`scripts/access-setup.ts`) does these steps on each deploy:
 
@@ -45,7 +54,7 @@ The deploy script (`scripts/access-setup.ts`) does these steps on each deploy:
 - It adds the One-time PIN login method if the account does not have a login method.
 - It makes a self-hosted Access application for `<worker>.<subdomain>.workers.dev/console` if it does not exist. It sets the session cookie of the application to `SameSite=Lax` and `HttpOnly`.
 - It sets the "Owner" policy of the application to the addresses in `OWNER_EMAIL`.
-- It sets `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` on the worker.
+- It sets `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`, and `OWNER_EMAIL` on the worker.
 
 The Access application covers only `/console`. The console calls its API at `/console/api/`. Access does not cover `/mcp` and `/v1`. Thus, agents continue to use their bearer tokens.
 

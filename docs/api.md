@@ -31,7 +31,7 @@ Each reply is JSON with one of these two formats:
 
 Each tool is also available at `POST /v1/tools/<name>`. Send the arguments as the JSON body. `GET /v1/tools` shows the list of tools.
 
-Days have the format `YYYY-MM-DD` in the `PANTRY_TZ` time zone. Times have the ISO 8601 format.
+Days have the format `YYYY-MM-DD` in the time zone of your copy. Refer to [architecture.md](architecture.md). Times have the ISO 8601 format.
 
 | Tool | Arguments |
 | --- | --- |
@@ -91,5 +91,6 @@ Only the admin can use these routes.
 | `POST /v1/admin/tokens` | `agent_id`, `name?`, `scopes?` (default `["read","write"]`), `label?`, `expires_in_days?` (1 to 3650, default no expiry) | Makes the agent if it does not exist. Enables the agent if it is disabled. Returns a new token, `expires_at`, and `mcp_url`. The reply shows the token one time only. |
 | `DELETE /v1/admin/tokens/<token_id>` | | Revokes one token. |
 | `DELETE /v1/admin/agents/<agent_id>` | | Disables the agent and revokes all of its tokens. |
+| `POST /v1/admin/time-zone` | `time_zone` (an IANA time zone) | Stores the time zone if there is no stored time zone. The console sends it at the first sign-in. Returns the `time_zone` that the worker uses. |
 
 A token is not necessary for `GET /v1/health`. It returns `{ status, service, version, git_sha }`.

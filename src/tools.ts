@@ -86,5 +86,5 @@ export const TOOLS_BY_NAME = new Map(TOOLS.map((t) => [t.name, t]));
 export async function callTool(env: Env, access: Access, tool: Tool, args: unknown): Promise<unknown> {
   requireScope(access, tool.scope);
   const input = tool.schema.parse(args);
-  return tool.run({ env, access, zone: zoneOf(env), now: new Date() }, input as never);
+  return tool.run({ env, access, zone: await zoneOf(env), now: new Date() }, input as never);
 }

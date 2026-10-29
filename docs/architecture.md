@@ -7,7 +7,7 @@ HivePantry is a food log. AI agents write to it and read from it. One Cloudflare
 Goals:
 
 - An agent logs a meal with one call. The same reply shows the totals for the day and the quantity that remains for each goal.
-- One click deploys a copy that operates on the Cloudflare free plan. The deploy has one necessary setting, `ADMIN_TOKEN`.
+- One click deploys a copy that operates on the Cloudflare free plan. The deploy form asks for one setting only, `ADMIN_TOKEN`.
 - An agent always reads the same numbers for the same day. A change to a saved food does not change earlier entries.
 - A retry is safe. Each write accepts an idempotency key.
 
@@ -64,6 +64,7 @@ Calories, protein, carbohydrates, and fat are necessary. Thus, each entry adds t
 | --- | --- | --- |
 | `foods` | The food library | Nutrients for one serving, the serving size and unit, and an optional `serving_grams`. With `serving_grams`, agents can log by grams. It also keeps the barcode, and `log_count` and `last_logged_at` to sort the frequent foods first. A partial unique index on the lowercase name and brand permits one active food for each name and brand. A delete only marks the row as deleted. |
 | `recipe_ingredients` | The ingredients of each recipe | A recipe is a row in `foods`. `recipe_servings` is not `null` for a recipe. Each ingredient row keeps the amount (`servings`) and a copy of the nutrients for one serving of the ingredient. The copy comes from the saved food at the time of the save, as for entries. A new list of ingredients replaces the old rows. |
+| `settings` | Values that the console stores | Now it has one key, `time_zone`. The console sends it at the first sign-in. |
 | `entries` | The food log | `local_date` (the day that the entry counts for), an optional `consumed_at`, `meal`, `servings`, and a copy of the nutrients for one serving. The copy comes from the food at the time of the log. `agent_id` shows the agent that logged the entry. `(agent_id, idempotency_key)` is unique. A delete only marks the row as deleted. |
 | `goals` | Daily targets | One row for each `effective_from` day. The last row on or before a day applies to that day. Thus, a goal change does not change earlier days. `null` means no target. |
 | `weights` | Weight measurements | The weight in kg, and an optional body fat percentage. `(agent_id, idempotency_key)` is unique. |
@@ -93,7 +94,7 @@ Only `save_recipe` can change the nutrients of a recipe. `save_food` returns 409
 
 ### Days and time zone
 
-`PANTRY_TZ` is an IANA time zone. You set it on the deploy form. The default is `UTC`. The `local_date` of an entry is the day in that time zone.
+The time zone is an IANA time zone. At the first sign-in, the console sends the time zone of the browser. The worker keeps it in the `settings` table. A subsequent sign-in does not change it. The optional var `PANTRY_TZ` has priority over it. If there is no time zone, the worker uses `UTC`. The `local_date` of an entry is the day in that time zone.
 
 A caller can send one of these values:
 
@@ -138,7 +139,7 @@ Each reply is `{ ok: true, data }` or `{ ok: false, error: { code, message, issu
 
 - `ADMIN_TOKEN` is a Worker secret. The deploy form asks for it. It has a minimum of 16 characters. It is the owner. It operates only on the console API and the `/v1/admin` routes. On `/mcp` and `/v1/tools`, it receives 403. Thus, an agent configuration cannot contain the owner password.
 - A person selects `ADMIN_TOKEN`, so an attacker can try to guess it. The `AUTH_LIMITER` binding permits 120 tries for each IP address in one minute. Each console request is a try, so the limit is more than the console uses. `ADMIN_TOKEN` has a minimum of 16 characters, so 120 guesses in one minute cannot find it. The worker examines agent tokens first. Agent tokens have 256 bits of entropy, so they do not use the limit.
-- The owner can also sign in to the console through Cloudflare Access. If `OWNER_EMAIL` is set, the deploy script makes an Access application for `<worker>.<subdomain>.workers.dev/console` only (`scripts/access-setup.ts`). The script sets `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` on the worker.
+- The owner can also sign in to the console through Cloudflare Access. If the build variable `OWNER_EMAIL` is set, the deploy script makes an Access application for `<worker>.<subdomain>.workers.dev/console` only (`scripts/access-setup.ts`). The script sets `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` on the worker.
 - The console calls the API at `/console/api/`, which the worker maps to `/v1/`. Thus, Access covers the console page and its API calls. `/mcp` and `/v1` are not in the Access application, so agents continue to use bearer tokens.
 - The worker verifies the Access JWT in the `Cf-Access-Jwt-Assertion` header. It also examines that the email is in `OWNER_EMAIL`. A verified JWT is the owner. The worker accepts the JWT only on `/console/api/`. A change with a JWT must have an `Origin` header that is the address of the worker. `ADMIN_TOKEN` continues to operate as a second sign-in method.
 - The admin makes agent tokens in the console or with `POST /v1/admin/tokens`. A token has the format `hp_<agent>_<43 random characters>`. It has 256 bits of entropy. The reply shows the token one time only. An optional `expires_in_days` sets an expiry time. After that time, the token does not operate.
@@ -151,7 +152,7 @@ Each reply is `{ ok: true, data }` or `{ ok: false, error: { code, message, issu
 
 1. The **Deploy to Cloudflare** button copies the repository into the GitHub account of the owner. It connects the copy to Workers Builds.
 2. The button reads `wrangler.jsonc`. The file names the D1 database but does not contain a `database_id`. Thus, the deploy makes the database.
-3. `package.json` `cloudflare.bindings` gives the help text on the form for `ADMIN_TOKEN`, `PANTRY_TZ`, and `OWNER_EMAIL`. `secrets.required` makes `ADMIN_TOKEN` necessary.
+3. `package.json` `cloudflare.bindings` gives the help text on the form for `ADMIN_TOKEN`. `secrets.required` and `.dev.vars.example` make `ADMIN_TOKEN` necessary. `wrangler.jsonc` has no `vars`, so the form asks for no other setting.
 4. Workers Builds runs `pnpm run deploy` (`scripts/deploy.ts`). The script applies the migrations if the database exists. Then it runs `wrangler deploy` with `GIT_SHA`. Then it applies the migrations again, because the first deploy makes the database during `wrangler deploy`.
 5. `.github/workflows/sync-upstream.yml` moves the `main` of the copy forward to this repository one time each day. It operates only if the owner of the copy sets the repository variable `SYNC_UPSTREAM` to `true`. An update runs code from this repository with the data of the copy. Thus, the owner of the copy must decide to accept updates. The push starts Workers Builds. Workers Builds applies new migrations before the new code starts.
 
