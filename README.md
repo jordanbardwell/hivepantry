@@ -25,6 +25,8 @@ HivePantry is a log of calories and macronutrients for AI agents. Agents record 
 6. Open `https://<worker>.<subdomain>.workers.dev/console`.
 7. Sign in with your `ADMIN_TOKEN`.
 
+Your browser or password manager can keep the `ADMIN_TOKEN` when you sign in.
+
 The console uses the time zone of your browser at the first sign-in. The deploy makes the D1 database and applies its schema. Your copy does not receive updates from this repository automatically. To receive them, connect your copy one time and set the repository variable `SYNC_UPSTREAM` to `true`. Refer to [docs/deploy.md](docs/deploy.md#updates).
 
 Optional: to sign in to the console with a code that Cloudflare sends to your email address, refer to [docs/deploy.md](docs/deploy.md#console-sign-in-with-cloudflare-access).
@@ -44,7 +46,7 @@ The prompt holds the token. Paste it only to the agent.
 
 To see the token or the prompt again, click **Show** in the **Agents** table. To change the access of a token, select a different value in the **Access** column. A token that you made before this function has no **Show** button. Make a new token for that agent, then revoke the old token.
 
-The **Connect** page in the console shows more configuration examples.
+The **Connect** page in the console shows more configuration examples. Each example has a **Copy** button.
 
 Each MCP tool is also a REST call at `POST /v1/tools/<name>` with a JSON body. Refer to [docs/api.md](docs/api.md).
 
