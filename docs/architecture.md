@@ -68,7 +68,7 @@ Calories, protein, carbohydrates, and fat are necessary. Thus, each entry adds t
 | `entries` | The food log | `local_date` (the day that the entry counts for), an optional `consumed_at`, `meal`, `servings`, and a copy of the nutrients for one serving. The copy comes from the food at the time of the log. `agent_id` shows the agent that logged the entry. `(agent_id, idempotency_key)` is unique. A delete only marks the row as deleted. |
 | `goals` | Daily targets | One row for each `effective_from` day. The last row on or before a day applies to that day. Thus, a goal change does not change earlier days. `null` means no target. |
 | `weights` | Weight measurements | The weight in kg, and an optional body fat percentage. `(agent_id, idempotency_key)` is unique. |
-| `agents`, `tokens` | Access | The tokens are SHA-256 hashes with the scopes `read` and `write`. |
+| `agents`, `tokens` | Access | Each token has a SHA-256 hash for sign-in, the token value for the console, and the scopes `read` and `write`. |
 
 ### Recipes
 
@@ -142,8 +142,8 @@ Each reply is `{ ok: true, data }` or `{ ok: false, error: { code, message, issu
 - The owner can also sign in to the console through Cloudflare Access. If the build variable `OWNER_EMAIL` is set, the deploy script makes an Access application for `<worker>.<subdomain>.workers.dev/console` only (`scripts/access-setup.ts`). The script sets `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` on the worker.
 - The console calls the API at `/console/api/`, which the worker maps to `/v1/`. Thus, Access covers the console page and its API calls. `/mcp` and `/v1` are not in the Access application, so agents continue to use bearer tokens.
 - The worker verifies the Access JWT in the `Cf-Access-Jwt-Assertion` header. It also examines that the email is in `OWNER_EMAIL`. A verified JWT is the owner. The worker accepts the JWT only on `/console/api/`. A change with a JWT must have an `Origin` header that is the address of the worker. `ADMIN_TOKEN` continues to operate as a second sign-in method.
-- The admin makes agent tokens in the console or with `POST /v1/admin/tokens`. A token has the format `hp_<agent>_<43 random characters>`. It has 256 bits of entropy. The reply shows the token one time only. An optional `expires_in_days` sets an expiry time. After that time, the token does not operate.
-- D1 keeps only the SHA-256 hash of each token. At this entropy, it is not possible to reverse the hash. Thus, a pepper secret is not necessary. HiveAttic uses a pepper secret.
+- The admin makes agent tokens in the console or with `POST /v1/admin/tokens`. A token has the format `hp_<agent>_<43 random characters>`. It has 256 bits of entropy. The owner can see the token again in the console and change its scopes. An optional `expires_in_days` sets an expiry time. After that time, the token does not operate.
+- The worker finds a token by its SHA-256 hash. D1 also keeps the token value, so that the owner can see the token again. Thus, a person who can read the D1 database can read the tokens. Only the owner of the Cloudflare account can read the database, and that person can also read the data that the tokens protect. A revoke deletes the token value.
 - The scopes are `read` and `write`. All agents of a copy operate for the same person. Thus, each agent with `write` can correct each entry. The `agent_id` of each row shows the agent that wrote it. `deleted_by` shows the agent that deleted it.
 - When you revoke a token or disable an agent, the change applies on the next request. The worker does not keep authentication in a cache.
 - A request to `/mcp` without a valid token receives 401 with `WWW-Authenticate: Bearer`.

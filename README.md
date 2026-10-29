@@ -34,18 +34,15 @@ For updates and a manual deploy, refer to [docs/deploy.md](docs/deploy.md).
 ## Connect an agent
 
 1. In the console, open **Agents**.
-2. Type a name for the agent, for example `claude`.
-3. Click **Make token**.
-4. Copy the token. The console shows the token one time only.
-5. Give the agent the MCP address `https://<worker>.<subdomain>.workers.dev/mcp`.
-6. Give the agent the token as a bearer token. For Claude Code, use this command:
+2. Type a name for the agent, for example `Claude Code`.
+3. Select the access: **Read and write** or **Read only**.
+4. Click **Make token**.
+5. Click **Copy setup prompt**.
+6. Paste the prompt to your AI agent. The prompt has the MCP address, the token, the configuration for Claude Code and for JSON settings files, and the rules to log food. The agent connects, examines the connection, and tells you what it will log.
 
-   ```sh
-   claude mcp add --transport http pantry https://<worker>.<subdomain>.workers.dev/mcp \
-     --header "Authorization: Bearer <agent token>"
-   ```
+The prompt holds the token. Paste it only to the agent.
 
-7. Tell the agent to call the `guide` tool first. The `guide` tool tells the agent how to use the other tools.
+To see the token or the prompt again, click **Show** in the **Agents** table. To change the access of a token, select a different value in the **Access** column. A token that you made before this function has no **Show** button. Make a new token for that agent, then revoke the old token.
 
 The **Connect** page in the console shows more configuration examples.
 
