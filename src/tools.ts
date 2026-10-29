@@ -29,6 +29,11 @@ export const GUIDE = [
   "- To log food: call search_foods first. If the food is saved, call log_food with food_id and servings (or grams).",
   "  If not, call log_food with name, calories, protein_g, carbs_g, and fat_g per serving. Estimate from typical values when there is no label, and say so to the person.",
   "  Add save_food: true for a food the person eats often, so next time it is one search away.",
+  "- For a dish the person cooked, call save_recipe with every ingredient and the amount that went in, and total_grams: the weight of the finished batch",
+  "  after cooking, without the pot. Then log it with log_food, food_id, and grams eaten (or servings). Cooking changes the weight, so ask the person to weigh the batch.",
+  "  Weigh ingredients as their nutrients describe them, usually raw. A recipe is a saved food, so search_foods finds it; kind: \"recipe\" lists only recipes.",
+  "  get_recipe shows the ingredients, per serving and per 100 g amounts, and how much of the current batch is left. When the person cooks it again,",
+  "  call save_recipe with its id and the new ingredients or total_grams. Read the warnings in the reply and tell the person about them.",
   "- Every log_food reply carries the day's totals and what is left of each goal, so you rarely need a second call.",
   "- Send an idempotency_key with each log_food and log_weight, so a retry never logs twice.",
   "- Fix mistakes with update_entry or delete_entry. Past entries keep the nutrients they were logged with, even if the saved food changes later.",
@@ -38,7 +43,7 @@ export const GUIDE = [
 export const TOOLS: Tool[] = [
   tool("whoami", "read", s.empty, "Return your agent id, scopes, the pantry time zone, and today's date there.", (ctx) => svc.whoami(ctx)),
   tool("guide", "read", s.empty, "Explain how to log food and read totals. Call this first if you are new here.", () => ({ guide: GUIDE })),
-  tool("search_foods", "read", s.searchFoodsSchema, "Search saved foods by name, brand, or barcode. With no query, list the most-logged foods.", svc.searchFoods),
+  tool("search_foods", "read", s.searchFoodsSchema, "Search saved foods and recipes by name, brand, or barcode. With no query, list the most-logged foods.", svc.searchFoods),
   tool(
     "save_food",
     "write",
@@ -46,7 +51,15 @@ export const TOOLS: Tool[] = [
     "Save a food to the library with its per-serving nutrients. Saving the same name and brand again updates it. Fields you leave out keep their saved values.",
     svc.saveFood,
   ),
-  tool("delete_food", "write", s.idSchema, "Remove a saved food from the library. Entries already logged keep their nutrients.", svc.deleteFood),
+  tool("delete_food", "write", s.idSchema, "Remove a saved food or recipe from the library. Entries already logged keep their nutrients.", svc.deleteFood),
+  tool(
+    "save_recipe",
+    "write",
+    s.saveRecipeSchema,
+    "Save a dish made from other foods. Send each ingredient and its amount, and total_grams, the cooked weight of the whole batch. Calculates per-serving and per-100 g nutrients, and saves the recipe as a food that log_food can log by grams or servings. Saving the same name again updates it.",
+    svc.saveRecipe,
+  ),
+  tool("get_recipe", "read", s.idSchema, "Show a recipe: its ingredients, batch totals, per-serving and per-100 g nutrients, and how much of the current batch is left.", svc.getRecipe),
   tool(
     "log_food",
     "write",

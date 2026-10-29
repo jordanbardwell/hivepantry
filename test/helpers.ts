@@ -63,5 +63,5 @@ export async function rpc(token: string | null, method: string, params: Record<s
 
 export async function reset(): Promise<void> {
   const db = (env as Env).DB;
-  await db.batch(["entries", "foods", "goals", "weights", "tokens", "agents"].map((t) => db.prepare(`DELETE FROM ${t}`)));
+  await db.batch(["entries", "recipe_ingredients", "foods", "goals", "weights", "tokens", "agents"].map((t) => db.prepare(`DELETE FROM ${t}`)));
 }
