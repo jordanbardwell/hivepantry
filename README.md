@@ -26,7 +26,7 @@ HivePantry is a log of calories and macronutrients for AI agents. Agents record 
 8. Open `https://<worker>.<subdomain>.workers.dev/console`.
 9. Sign in with the code that Cloudflare sends to your email address. If you did not set `OWNER_EMAIL`, sign in with your `ADMIN_TOKEN`.
 
-The deploy makes the D1 database and applies its schema. Your copy receives the updates from this repository one time each day.
+The deploy makes the D1 database and applies its schema. Your copy does not receive updates from this repository automatically. To receive them, set the repository variable `SYNC_UPSTREAM` to `true` in your copy. Refer to [docs/deploy.md](docs/deploy.md#updates).
 
 If you set `OWNER_EMAIL`, the deploy puts Cloudflare Access in front of the console only. Agents continue to use their tokens on `/mcp`. The Workers Builds token must have two Access permissions for this step. Refer to [docs/deploy.md](docs/deploy.md#console-sign-in-with-cloudflare-access).
 

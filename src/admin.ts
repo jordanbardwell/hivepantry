@@ -5,12 +5,21 @@ import { PantryError } from "./errors";
 import type { mintSchema } from "./schemas";
 
 type AgentRow = { id: string; name: string; created_at: string; disabled_at: string | null };
-type TokenRow = { id: string; agent_id: string; scopes: string; label: string | null; created_at: string; last_used_at: string | null; revoked_at: string | null };
+type TokenRow = {
+  id: string;
+  agent_id: string;
+  scopes: string;
+  label: string | null;
+  created_at: string;
+  last_used_at: string | null;
+  revoked_at: string | null;
+  expires_at: string | null;
+};
 
 export async function listAgents(env: Env) {
   const [agents, tokens] = await Promise.all([
     env.DB.prepare("SELECT * FROM agents ORDER BY created_at").all<AgentRow>(),
-    env.DB.prepare("SELECT id, agent_id, scopes, label, created_at, last_used_at, revoked_at FROM tokens ORDER BY created_at").all<TokenRow>(),
+    env.DB.prepare("SELECT id, agent_id, scopes, label, created_at, last_used_at, revoked_at, expires_at FROM tokens ORDER BY created_at").all<TokenRow>(),
   ]);
   return {
     agents: agents.results.map((agent) => ({
@@ -23,7 +32,9 @@ export async function listAgents(env: Env) {
 // Makes the agent if it is new, enables it if it was disabled, and mints a token. The token is in
 // this reply only; the database keeps its hash.
 export async function mintToken(env: Env, input: z.infer<typeof mintSchema>) {
-  const now = new Date().toISOString();
+  const issued = new Date();
+  const now = issued.toISOString();
+  const expiresAt = input.expires_in_days ? new Date(issued.getTime() + input.expires_in_days * 86_400_000).toISOString() : null;
   const scopes: Scope[] = [...new Set(input.scopes ?? (["read", "write"] as Scope[]))];
   const token = randomToken(input.agent_id);
   const tokenId = ulid();
@@ -32,16 +43,17 @@ export async function mintToken(env: Env, input: z.infer<typeof mintSchema>) {
       `INSERT INTO agents (id, name, created_at) VALUES (?, ?, ?)
        ON CONFLICT (id) DO UPDATE SET disabled_at = NULL, name = COALESCE(?, agents.name)`,
     ).bind(input.agent_id, input.name ?? input.agent_id, now, input.name ?? null),
-    env.DB.prepare("INSERT INTO tokens (id, agent_id, token_hash, scopes, label, created_at) VALUES (?, ?, ?, ?, ?, ?)").bind(
+    env.DB.prepare("INSERT INTO tokens (id, agent_id, token_hash, scopes, label, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?)").bind(
       tokenId,
       input.agent_id,
       await sha256Hex(token),
       scopes.join(","),
       input.label ?? null,
       now,
+      expiresAt,
     ),
   ]);
-  return { agent_id: input.agent_id, token_id: tokenId, scopes, token };
+  return { agent_id: input.agent_id, token_id: tokenId, scopes, expires_at: expiresAt, token };
 }
 
 export async function revokeToken(env: Env, tokenId: string) {

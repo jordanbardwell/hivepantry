@@ -1,3 +1,4 @@
+import { env } from "cloudflare:test";
 import { beforeEach, describe, expect, it } from "vitest";
 import { ADMIN, call, mint, reset, rest, rpc } from "./helpers";
 
@@ -19,9 +20,32 @@ describe("auth", () => {
     expect((await rpc("hp_x_bad", "tools/list")).status).toBe(401);
   });
 
-  it("treats ADMIN_TOKEN as the admin", async () => {
-    const me = await call(ADMIN, "whoami");
+  it("treats ADMIN_TOKEN as the admin on the console API and /v1/admin only", async () => {
+    const me = await rest("/console/api/tools/whoami", ADMIN, { method: "POST", body: "{}" });
     expect(me.json.data).toMatchObject({ agent_id: "owner", admin: true, time_zone: "America/New_York" });
+    expect((await rest("/v1/admin/agents", ADMIN)).status).toBe(200);
+    expect((await call(ADMIN, "whoami")).status).toBe(403);
+    expect((await rpc(ADMIN, "tools/list")).status).toBe(403);
+  });
+
+  it("limits ADMIN_TOKEN tries per IP but not agent tokens", async () => {
+    const agent = await mint("claude");
+    const headers = { "cf-connecting-ip": "192.0.2.7" };
+    const statuses: number[] = [];
+    for (let i = 0; i < 31; i++) statuses.push((await rest("/v1/admin/agents", `wrong-guess-${i}`, { headers })).status);
+    expect(statuses.slice(0, 30).every((s) => s === 401)).toBe(true);
+    expect(statuses[30]).toBe(429);
+    expect((await rest("/v1/admin/agents", ADMIN, { headers })).status).toBe(429);
+    expect((await rest("/v1/tools/whoami", agent, { method: "POST", body: "{}", headers })).status).toBe(200);
+  });
+
+  it("stops a token after its expiry", async () => {
+    const minted = await rest("/v1/admin/tokens", ADMIN, { method: "POST", body: JSON.stringify({ agent_id: "temp", expires_in_days: 30 }) });
+    expect(minted.json.data.expires_at).toMatch(/^\d{4}-/);
+    const token = minted.json.data.token as string;
+    expect((await call(token, "whoami")).status).toBe(200);
+    await (env as Env).DB.prepare("UPDATE tokens SET expires_at = ? WHERE id = ?").bind("2000-01-01T00:00:00.000Z", minted.json.data.token_id).run();
+    expect((await call(token, "whoami")).status).toBe(401);
   });
 
   it("mints, scopes, and revokes agent tokens", async () => {

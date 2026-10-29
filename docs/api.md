@@ -1,6 +1,10 @@
 # API
 
-Each request must have the header `Authorization: Bearer <token>`. These requests are the exceptions: `GET /v1/health`, the console page, and console requests with a Cloudflare Access sign-in. The token is the `ADMIN_TOKEN` or an agent token. The admin makes the agent tokens.
+Each request must have the header `Authorization: Bearer <token>`. These requests are the exceptions: `GET /v1/health`, the console page, and console requests with a Cloudflare Access sign-in. The token is an agent token or the `ADMIN_TOKEN`. The admin makes the agent tokens.
+
+`ADMIN_TOKEN` operates only on the console API (`/console/api/`) and on `/v1/admin`. On `/mcp` and `/v1/tools`, it receives 403. Give each agent its own agent token.
+
+Each IP address can try `ADMIN_TOKEN` a maximum of 30 times in one minute. More tries receive 429. Agent tokens do not have this limit.
 
 Each reply is JSON with one of these two formats:
 
@@ -10,10 +14,11 @@ Each reply is JSON with one of these two formats:
 | Code | Status | Meaning |
 | --- | --- | --- |
 | `unauthorized` | 401 | The token is missing or not valid. |
-| `forbidden` | 403 | The token does not have the scope, or only the admin can use the route. |
+| `forbidden` | 403 | The token does not have the scope, only the admin can use the route, or `ADMIN_TOKEN` is not permitted on the route. |
 | `not_found` | 404 | The tool, food, entry, weight, token, or agent does not exist. |
 | `invalid` | 400 | The input is not correct. `issues` shows the incorrect fields. |
 | `conflict` | 409 | Another food has the same name and brand. |
+| `rate_limited` | 429 | Too many tries of `ADMIN_TOKEN` from one IP address. Wait one minute. |
 | `misconfigured` | 500 | `ADMIN_TOKEN` is missing or too short, or `PANTRY_TZ` is not a known time zone. |
 
 ## MCP
@@ -58,7 +63,7 @@ Only the admin can use these routes.
 | Route | Body | Result |
 | --- | --- | --- |
 | `GET /v1/admin/agents` | | Shows the agents and their tokens. It does not show token values. |
-| `POST /v1/admin/tokens` | `agent_id`, `name?`, `scopes?` (default `["read","write"]`), `label?` | Makes the agent if it does not exist. Enables the agent if it is disabled. Returns a new token and `mcp_url`. The reply shows the token one time only. |
+| `POST /v1/admin/tokens` | `agent_id`, `name?`, `scopes?` (default `["read","write"]`), `label?`, `expires_in_days?` (1 to 3650, default no expiry) | Makes the agent if it does not exist. Enables the agent if it is disabled. Returns a new token, `expires_at`, and `mcp_url`. The reply shows the token one time only. |
 | `DELETE /v1/admin/tokens/<token_id>` | | Revokes one token. |
 | `DELETE /v1/admin/agents/<agent_id>` | | Disables the agent and revokes all of its tokens. |
 

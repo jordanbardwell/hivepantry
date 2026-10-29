@@ -43,7 +43,7 @@ The deploy script (`scripts/access-setup.ts`) does these steps on each deploy:
 
 - It makes the Zero Trust organization if it does not exist. The team domain is `<workers.dev subdomain>.cloudflareaccess.com`.
 - It adds the One-time PIN login method if the account does not have a login method.
-- It makes a self-hosted Access application for `<worker>.<subdomain>.workers.dev/console` if it does not exist.
+- It makes a self-hosted Access application for `<worker>.<subdomain>.workers.dev/console` if it does not exist. It sets the session cookie of the application to `SameSite=Lax` and `HttpOnly`.
 - It sets the "Owner" policy of the application to the addresses in `OWNER_EMAIL`.
 - It sets `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` on the worker.
 
@@ -53,18 +53,29 @@ With One-time PIN, Cloudflare sends a code to your email address. To sign in wit
 
 The worker verifies the Access JWT in the `Cf-Access-Jwt-Assertion` header. It uses the keys at `https://<team>/cdn-cgi/access/certs` and the RS256 algorithm. It examines the audience, the issuer, and the expiry time. It also examines that the email is in `OWNER_EMAIL`. `ADMIN_TOKEN` continues to operate.
 
+The worker accepts the Access JWT only on `/console/api/`. On `/v1` and `/mcp`, it accepts only bearer tokens. For a change with an Access sign-in (each method other than `GET`), the `Origin` header must be the address of the worker. Thus, a page on a different site cannot use your Access sign-in to change your data.
+
 **CAUTION:** The deploy uses the API token of Workers Builds. This token must have these permissions:
 
 - Access: Apps and Policies (Edit)
 - Access: Organizations, Identity Providers, and Groups (Edit)
 
-If the token does not have these permissions, the deploy shows a warning and continues without Access. The console then uses only `ADMIN_TOKEN`. To add the permissions, edit the build token in the Cloudflare dashboard. Then start the deploy again.
+The second permission can change all of your Zero Trust organization. The deploy needs Edit only for the first deploy, when it makes the organization and the login method. After the first deploy, change this permission to Read.
+
+If the token does not have these permissions, the deploy shows a warning and continues. If an earlier deploy set up Access, the worker keeps its Access settings. If not, the console uses only `ADMIN_TOKEN`. To add the permissions, edit the build token in the Cloudflare dashboard. Then start the deploy again.
 
 **CAUTION:** Do not enable the one-click Access setting on the worker. That setting covers all of the `workers.dev` hostname, also `/mcp`. MCP clients cannot complete a browser sign-in, so the agents stop.
 
 ## Updates
 
-Your copy does not receive updates from this repository automatically. The workflow `.github/workflows/sync-upstream.yml` does this task:
+Your copy does not receive updates from this repository automatically. An update runs code from this repository with your data. Thus, you must decide to accept updates.
+
+To receive updates, do these steps:
+
+1. In your GitHub copy, go to **Settings**, then to **Secrets and variables**, then to **Actions**.
+2. On the **Variables** tab, add the repository variable `SYNC_UPSTREAM` with the value `true`.
+
+Then the workflow `.github/workflows/sync-upstream.yml` does this task:
 
 - It moves your `main` forward to the `main` of this repository one time each day. You can also start it from the **Actions** page.
 - The push to your `main` deploys the update.
@@ -75,6 +86,8 @@ The workflow fails in these conditions:
 - An update changes a workflow file.
 
 If the workflow fails, merge `upstream/main` manually.
+
+To stop updates, delete the variable or set it to `false`.
 
 GitHub stops scheduled workflows in a repository that has no activity for 60 days. To start the workflow again, enable it on the **Actions** page.
 

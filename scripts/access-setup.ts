@@ -74,14 +74,22 @@ export async function ensureConsoleAccess(
     await cf(`${account}/access/identity_providers`, { method: "POST", body: { name: "One-time PIN", type: "onetimepin", config: {} } });
   }
 
+  // SameSite=Lax keeps a page on another site from sending the session cookie with a POST. The
+  // worker also checks Origin, so an app made before this setting is still safe.
+  const appBody = {
+    name: `${options.appName} console`,
+    type: "self_hosted",
+    domain,
+    session_duration: "24h",
+    app_launcher_visible: false,
+    same_site_cookie_attribute: "lax",
+    http_only_cookie_attribute: true,
+  };
   const apps = ((await cf(`${account}/access/apps`)) as App[] | null) ?? [];
-  let app = apps.find((a) => a.domain === domain);
-  if (!app) {
-    app = (await cf(`${account}/access/apps`, {
-      method: "POST",
-      body: { name: `${options.appName} console`, type: "self_hosted", domain, session_duration: "24h", app_launcher_visible: false },
-    })) as App;
-  }
+  const found = apps.find((a) => a.domain === domain);
+  const app = (found
+    ? await cf(`${account}/access/apps/${found.id}`, { method: "PUT", body: appBody })
+    : await cf(`${account}/access/apps`, { method: "POST", body: appBody })) as App;
 
   const policy = {
     name: "Owner",
@@ -94,4 +102,13 @@ export async function ensureConsoleAccess(
   else await cf(`${account}/access/apps/${app.id}/policies`, { method: "POST", body: policy });
 
   return { team, aud: app.aud, host };
+}
+
+// The ACCESS_ vars of the deployed worker, as --var arguments, or none if it has no Access setup.
+export async function liveAccessVars(cf: CfFetch, accountId: string, workerName: string): Promise<string[]> {
+  const settings = (await cf(`/accounts/${accountId}/workers/scripts/${workerName}/settings`)) as { bindings?: { type: string; name: string; text?: string }[] };
+  const value = (name: string) => settings.bindings?.find((b) => b.type === "plain_text" && b.name === name)?.text ?? "";
+  const team = value("ACCESS_TEAM_DOMAIN");
+  const aud = value("ACCESS_AUD");
+  return team && aud ? ["--var", `ACCESS_TEAM_DOMAIN:${team}`, "--var", `ACCESS_AUD:${aud}`] : [];
 }

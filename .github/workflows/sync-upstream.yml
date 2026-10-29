@@ -1,8 +1,10 @@
 name: sync upstream
 
-# A copy made with Deploy to Cloudflare does not follow this repository on its own. Once a day,
-# or from the Actions tab, this fast-forwards the copy's main to upstream main, and the push makes
-# Workers Builds deploy the update (pnpm run deploy applies new migrations first). A copy whose
+# A copy made with Deploy to Cloudflare does not follow this repository on its own. An update runs
+# code from this repository against the copy's data, so the copy's owner opts in: set the
+# repository variable SYNC_UPSTREAM to true. Then once a day, or from the Actions tab, this
+# fast-forwards the copy's main to upstream main, and the push makes Workers Builds deploy the
+# update (pnpm run deploy applies new migrations first). A copy whose
 # main has its own commits is left alone and the run fails so its owner can merge by hand. The
 # default token cannot push an update that changes a workflow file, so that run fails the same way.
 # It never runs in the upstream repository itself.
@@ -20,7 +22,7 @@ env:
 
 jobs:
   sync:
-    if: github.repository != 'jordanbardwell/hivepantry'
+    if: github.repository != 'jordanbardwell/hivepantry' && vars.SYNC_UPSTREAM == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

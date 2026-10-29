@@ -9,6 +9,8 @@ export async function rest(path: string, token: string | null, init: RequestInit
   const headers = new Headers(init.headers);
   if (token) headers.set("authorization", `Bearer ${token}`);
   if (init.body) headers.set("content-type", "application/json");
+  // ADMIN_TOKEN tries are limited per IP. A fresh IP per request keeps suites apart from that limit.
+  if (!headers.has("cf-connecting-ip")) headers.set("cf-connecting-ip", `10.0.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 256)}`);
   const response = await SELF.fetch(`${BASE}${path}`, { ...init, headers });
   const text = await response.text();
   let json: Envelope;

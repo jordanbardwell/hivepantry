@@ -92,6 +92,7 @@
         <div class="row">
           <input id="agent-id" placeholder="agent ID, for example claude" pattern="[a-z0-9][a-z0-9-]*">
           <select id="agent-scopes"><option value="read,write">read and write</option><option value="read">read only</option></select>
+          <select id="agent-expiry"><option value="">no expiry</option><option value="30">expires in 30 days</option><option value="90">expires in 90 days</option><option value="365">expires in 365 days</option></select>
           <button class="primary" id="mint">Make token</button>
         </div>
         <p class="error" id="mint-error"></p>
@@ -223,7 +224,7 @@
       ? `<tr><th>Agent</th><th>Token</th><th>Scopes</th><th>Last used</th><th></th></tr>` +
         agents.flatMap((a) => (a.tokens.length ? a.tokens : [null]).map((t, i) => `<tr>
           <td>${i ? "" : `${esc(a.id)}${a.disabled_at ? ' <span class="muted">(disabled)</span>' : ""}`}</td>
-          <td>${t ? `<code>${esc(t.id.slice(-8))}</code>${t.revoked_at ? ' <span class="muted">revoked</span>' : ""}` : "–"}</td>
+          <td>${t ? `<code>${esc(t.id.slice(-8))}</code>${t.revoked_at ? ' <span class="muted">revoked</span>' : t.expires_at ? ` <span class="muted">expires ${esc(t.expires_at.slice(0, 10))}</span>` : ""}` : "–"}</td>
           <td>${t ? esc(t.scopes.join(", ")) : ""}</td><td class="muted">${t?.last_used_at ? esc(t.last_used_at.slice(0, 16).replace("T", " ")) : "never"}</td>
           <td>${t && !t.revoked_at ? `<button class="ghost danger" data-revoke="${esc(t.id)}">Revoke</button>` : ""}</td></tr>`)).join("")
       : `<tr><td class="muted">There are no agents. Make a token above.</td></tr>`;
@@ -262,7 +263,7 @@
   $("mint").addEventListener("click", async () => {
     $("mint-error").textContent = "";
     try {
-      const minted = await api("/console/api/admin/tokens", { agent_id: $("agent-id").value.trim(), scopes: $("agent-scopes").value.split(",") });
+      const minted = await api("/console/api/admin/tokens", { agent_id: $("agent-id").value.trim(), scopes: $("agent-scopes").value.split(","), ...($("agent-expiry").value ? { expires_in_days: Number($("agent-expiry").value) } : {}) });
       $("minted-token").textContent = minted.token;
       $("minted").hidden = false;
       await loadAgents();

@@ -18,7 +18,7 @@ These items are not in this version. Each item is possible in a subsequent versi
 - Micronutrients other than fiber, sugar, and sodium.
 - More than one person for each deploy.
 - OAuth. Agents use bearer tokens. Some clients accept only OAuth for remote MCP, for example claude.ai custom connectors. For these clients, it is necessary to add the OAuth provider from `@cloudflare/workers-oauth-provider`.
-- Rate limits. One person and their own agents use each copy.
+- Rate limits for agent tokens. One person and their own agents use each copy. Only tries of `ADMIN_TOKEN` have a limit.
 
 ## Stack
 
@@ -104,7 +104,7 @@ The tools are the product. `src/tools.ts` has the only list of tools. MCP regist
 | `update_entry` | write | Changes the servings, grams, meal, day, time, or note. |
 | `delete_entry` | write | Marks an entry as deleted. |
 | `get_day` | read | Shows one day by meal, with totals, goals, and the quantity that remains. |
-| `get_trends` | read | Shows daily totals for a period, the average for each logged day, and the average compared to the goal. |
+| `get_trends` | read | Shows daily totals for a period, the average for each logged day, and the average difference from the goal. Each day uses the goal that applies on that day. |
 | `get_goals`, `set_goals` | read, write | Shows the goals for a day. Sets goals from a day forward. Fields that you do not send keep their values, unless `replace` is true. |
 | `log_weight`, `get_weights`, `delete_weight` | write, read, write | Logs weights in kg or lb. Shows the change from the last weight, and a summary for a period. |
 
@@ -112,13 +112,14 @@ Each reply is `{ ok: true, data }` or `{ ok: false, error: { code, message, issu
 
 ## Authentication
 
-- `ADMIN_TOKEN` is a Worker secret. The deploy form asks for it. It has a minimum of 16 characters. It is the owner. It can call all tools and the `/v1/admin` routes. It signs in to the console.
+- `ADMIN_TOKEN` is a Worker secret. The deploy form asks for it. It has a minimum of 16 characters. It is the owner. It operates only on the console API and the `/v1/admin` routes. On `/mcp` and `/v1/tools`, it receives 403. Thus, an agent configuration cannot contain the owner password.
+- A person selects `ADMIN_TOKEN`, so an attacker can try to guess it. The `AUTH_LIMITER` binding permits 30 tries for each IP address in one minute. The worker examines agent tokens first. Agent tokens have 256 bits of entropy, so they do not use the limit.
 - The owner can also sign in to the console through Cloudflare Access. If `OWNER_EMAIL` is set, the deploy script makes an Access application for `<worker>.<subdomain>.workers.dev/console` only (`scripts/access-setup.ts`). The script sets `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` on the worker.
 - The console calls the API at `/console/api/`, which the worker maps to `/v1/`. Thus, Access covers the console page and its API calls. `/mcp` and `/v1` are not in the Access application, so agents continue to use bearer tokens.
-- The worker verifies the Access JWT in the `Cf-Access-Jwt-Assertion` header. It also examines that the email is in `OWNER_EMAIL`. A verified JWT is the owner. `ADMIN_TOKEN` continues to operate as a second sign-in method.
-- The admin makes agent tokens in the console or with `POST /v1/admin/tokens`. A token has the format `hp_<agent>_<43 random characters>`. It has 256 bits of entropy. The reply shows the token one time only.
+- The worker verifies the Access JWT in the `Cf-Access-Jwt-Assertion` header. It also examines that the email is in `OWNER_EMAIL`. A verified JWT is the owner. The worker accepts the JWT only on `/console/api/`. A change with a JWT must have an `Origin` header that is the address of the worker. `ADMIN_TOKEN` continues to operate as a second sign-in method.
+- The admin makes agent tokens in the console or with `POST /v1/admin/tokens`. A token has the format `hp_<agent>_<43 random characters>`. It has 256 bits of entropy. The reply shows the token one time only. An optional `expires_in_days` sets an expiry time. After that time, the token does not operate.
 - D1 keeps only the SHA-256 hash of each token. At this entropy, it is not possible to reverse the hash. Thus, a pepper secret is not necessary. HiveAttic uses a pepper secret.
-- The scopes are `read` and `write`. All agents of a copy operate for the same person. Thus, each agent with `write` can correct each entry. The `agent_id` of each row shows the agent that wrote it.
+- The scopes are `read` and `write`. All agents of a copy operate for the same person. Thus, each agent with `write` can correct each entry. The `agent_id` of each row shows the agent that wrote it. `deleted_by` shows the agent that deleted it.
 - When you revoke a token or disable an agent, the change applies on the next request. The worker does not keep authentication in a cache.
 - A request to `/mcp` without a valid token receives 401 with `WWW-Authenticate: Bearer`.
 
@@ -128,7 +129,7 @@ Each reply is `{ ok: true, data }` or `{ ok: false, error: { code, message, issu
 2. The button reads `wrangler.jsonc`. The file names the D1 database but does not contain a `database_id`. Thus, the deploy makes the database.
 3. `package.json` `cloudflare.bindings` gives the help text on the form for `ADMIN_TOKEN`, `PANTRY_TZ`, and `OWNER_EMAIL`. `secrets.required` makes `ADMIN_TOKEN` necessary.
 4. Workers Builds runs `pnpm run deploy` (`scripts/deploy.ts`). The script applies the migrations if the database exists. Then it runs `wrangler deploy` with `GIT_SHA`. Then it applies the migrations again, because the first deploy makes the database during `wrangler deploy`.
-5. `.github/workflows/sync-upstream.yml` moves the `main` of the copy forward to this repository one time each day. The push starts Workers Builds. Workers Builds applies new migrations before the new code starts.
+5. `.github/workflows/sync-upstream.yml` moves the `main` of the copy forward to this repository one time each day. It operates only if the owner of the copy sets the repository variable `SYNC_UPSTREAM` to `true`. An update runs code from this repository with the data of the copy. Thus, the owner of the copy must decide to accept updates. The push starts Workers Builds. Workers Builds applies new migrations before the new code starts.
 
 The button can read only a public repository. Thus, this repository must be public for the button to operate.
 

@@ -6,14 +6,15 @@ export type Nutrient = (typeof NUTRIENTS)[number];
 export type Nutrients = Record<Nutrient, number | null>;
 
 const amount = z.number().min(0).max(100_000);
-const date = z.string().describe("A day as YYYY-MM-DD in the pantry time zone. Defaults to today.");
-const instant = z.string().describe("An ISO 8601 time, for example 2026-10-27T12:30:00-04:00.");
+const date = z.string().max(10).describe("A day as YYYY-MM-DD in the pantry time zone. Defaults to today.");
+const instant = z.string().max(64).describe("An ISO 8601 time, for example 2026-10-27T12:30:00-04:00.");
 const idempotencyKey = z
   .string()
   .min(1)
   .max(200)
   .describe("Any unique string for this write. A retry with the same key returns the first result and writes nothing.");
 const text = (max: number) => z.string().trim().max(max);
+const id = z.string().min(1).max(64);
 
 // Per-serving amounts. The four core values are required so every entry counts toward totals.
 // Estimate them when a label is not at hand.
@@ -43,7 +44,7 @@ export const searchFoodsSchema = z.object({
 });
 
 export const saveFoodSchema = z.object({
-  id: z.string().optional().describe("Update this saved food. Without it, a food with the same name and brand is updated, or a new one is made."),
+  id: id.optional().describe("Update this saved food. Without it, a food with the same name and brand is updated, or a new one is made."),
   name: text(200).min(1),
   brand: text(200).nullable().optional(),
   ...serving,
@@ -53,10 +54,10 @@ export const saveFoodSchema = z.object({
   notes: text(1000).nullable().optional(),
 });
 
-export const idSchema = z.object({ id: z.string().min(1) });
+export const idSchema = z.object({ id });
 
 export const logFoodSchema = z.object({
-  food_id: z.string().optional().describe("A saved food from search_foods. Its per-serving amounts are copied into the entry."),
+  food_id: id.optional().describe("A saved food from search_foods. Its per-serving amounts are copied into the entry."),
   name: text(200).min(1).optional().describe("For a food that is not saved: its name. Then also send calories, protein_g, carbs_g, and fat_g per serving."),
   brand: text(200).nullable().optional(),
   ...serving,
@@ -76,7 +77,7 @@ export const logFoodSchema = z.object({
 });
 
 export const updateEntrySchema = z.object({
-  id: z.string().min(1),
+  id,
   servings: z.number().positive().max(1000).optional(),
   grams: z.number().positive().max(100_000).optional(),
   meal: z.enum(MEALS).optional(),
@@ -124,4 +125,5 @@ export const mintSchema = z.object({
   name: text(100).optional(),
   scopes: z.array(z.enum(["read", "write"])).min(1).optional().describe('Default ["read", "write"].'),
   label: text(100).optional(),
+  expires_in_days: z.number().int().min(1).max(3650).optional().describe("The token stops working after this many days. Default: no expiry."),
 });
