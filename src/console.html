@@ -632,9 +632,10 @@
 
   function renderStats(d, t, w) {
     const stat = (k, v, unit, sub, over) => `<div class="stat"><div class="k">${k}</div><div class="v num">${v}${unit ? `<small> ${unit}</small>` : ""}</div><div class="d${over ? " over" : ""}">${sub}</div></div>`;
-    const change = w.change_kg;
+    // The console shows weight in pounds only.
+    const change = w.change_lb;
     const weight = w.last
-      ? stat("Weight", fmt(w.last.weight_kg), "kg", change === null || w.count < 2 ? `on ${dateLabel(w.last.date, { month: "short", day: "numeric" })}` : `${change > 0 ? "+" : change < 0 ? "−" : "±"}${fmt(Math.abs(change))} kg in ${state.range} days`)
+      ? stat("Weight", fmt(w.last.weight_lb), "lb", change === null || w.count < 2 ? `on ${dateLabel(w.last.date, { month: "short", day: "numeric" })}` : `${change > 0 ? "+" : change < 0 ? "−" : "±"}${fmt(Math.abs(change))} lb in ${state.range} days`)
       : stat("Weight", "–", "", "No weigh-ins");
     const avg = t.average_per_logged_day?.calories;
     const average = stat(`${state.range}-day average`, avg === undefined || avg === null ? "–" : fmt(Math.round(avg)), "kcal", `${t.logged_days} of ${t.total_days} days logged`);
@@ -728,11 +729,11 @@
       svgText(svg, W / 2, H / 2, "There are no weigh-ins in this period.", { "text-anchor": "middle" });
       return;
     }
-    const kgs = w.weights.map((p) => p.weight_kg);
-    const pad = Math.max(0.3, (Math.max(...kgs) - Math.min(...kgs)) * 0.15);
-    const step = niceStep(Math.max(...kgs) - Math.min(...kgs) + 2 * pad);
-    const lo = Math.floor((Math.min(...kgs) - pad) / step) * step;
-    const hi = Math.ceil((Math.max(...kgs) + pad) / step) * step;
+    const lbs = w.weights.map((p) => p.weight_lb);
+    const pad = Math.max(0.6, (Math.max(...lbs) - Math.min(...lbs)) * 0.15);
+    const step = niceStep(Math.max(...lbs) - Math.min(...lbs) + 2 * pad);
+    const lo = Math.floor((Math.min(...lbs) - pad) / step) * step;
+    const hi = Math.ceil((Math.max(...lbs) + pad) / step) * step;
     const from = dayNum(w.from), span = Math.max(1, dayNum(w.to) - from);
     const x = (date) => L + (W - L - R) * ((dayNum(date) - from) / span);
     const y = (v) => T + (H - T - B) * (1 - (v - lo) / (hi - lo));
@@ -746,7 +747,7 @@
     const grad = svgEl("linearGradient", { id: "wfill", x1: 0, x2: 0, y1: 0, y2: 1 }, defs);
     svgEl("stop", { offset: 0, class: "wstop", "stop-opacity": 0.12 }, grad);
     svgEl("stop", { offset: 1, class: "wstop", "stop-opacity": 0 }, grad);
-    const pts = w.weights.map((p) => [x(p.date), y(p.weight_kg)]);
+    const pts = w.weights.map((p) => [x(p.date), y(p.weight_lb)]);
     const line = pts.map(([px, py], i) => `${i ? "L" : "M"}${px.toFixed(1)},${py.toFixed(1)}`).join("");
     svgEl("path", { class: "warea", d: `${line}L${pts[pts.length - 1][0]},${y(lo)}L${pts[0][0]},${y(lo)}Z` }, svg);
     svgEl("path", { class: "wline", d: line }, svg);
@@ -755,7 +756,7 @@
     svgEl("circle", { class: "wdot", cx: lx, cy: ly, r: 4 }, svg);
     // Put the label on the side away from the line that comes in to the last point.
     const fromAbove = pts.length > 1 && pts[pts.length - 2][1] < ly;
-    svgText(svg, lx - 8, Math.min(H - B - 4, Math.max(T + 10, ly + (fromAbove ? 20 : -12))), `${fmt(last.weight_kg)} kg`, { class: "t-ink", "text-anchor": "end" });
+    svgText(svg, lx - 8, Math.min(H - B - 4, Math.max(T + 10, ly + (fromAbove ? 20 : -12))), `${fmt(last.weight_lb)} lb`, { class: "t-ink", "text-anchor": "end" });
     // Crosshair: the hover snaps to the nearest weigh-in.
     const cross = svgEl("line", { class: "cross", y1: T, y2: H - B, visibility: "hidden" }, svg);
     const dot = svgEl("circle", { class: "wdot", r: 4, visibility: "hidden" }, svg);
@@ -771,7 +772,7 @@
       dot.setAttribute("cy", pts[i][1]);
       cross.setAttribute("visibility", "visible");
       dot.setAttribute("visibility", "visible");
-      hit.setAttribute("data-tip", `${dateLabel(p.date, { weekday: "short", month: "short", day: "numeric" })}\n${fmt(p.weight_kg)} kg · ${fmt(p.weight_lb)} lb${p.body_fat_pct ? ` · ${fmt(p.body_fat_pct)}% fat` : ""}`);
+      hit.setAttribute("data-tip", `${dateLabel(p.date, { weekday: "short", month: "short", day: "numeric" })}\n${fmt(p.weight_lb)} lb${p.body_fat_pct ? ` · ${fmt(p.body_fat_pct)}% fat` : ""}`);
     };
     hit.addEventListener("pointermove", crosshair);
     hit.addEventListener("pointerdown", crosshair);
