@@ -13,6 +13,7 @@
     --protein: #3987e5; --carbs: #d95926; --fat: #199e70;
     --good: #0ca30c; --critical: #e66767;
     /* Theme colors that are not ink or surface: the white pill, hover and focus borders, glows. */
+    --bar-empty: #262626;
     --accent: #fff; --on-accent: #000; --accent-hover: #ddd; --hover-line: #444; --focus-line: #555;
     --pop: #0e0e0e; --hero: #1b1b1b; --bar: #5a5a5a; --glow: rgba(255,255,255,.07); --hit: rgba(255,255,255,.04);
     --header: rgba(0,0,0,.82); --shadow: rgba(0,0,0,.6);
@@ -25,8 +26,9 @@
     --ink: #111; --ink-2: #4d4d4d; --ink-3: #6b6b6b;
     --protein: #2f7ad6; --carbs: #c94e1d; --fat: #15875f;
     --good: #0a8a0a; --critical: #c93c3c;
+    --bar-empty: #dcdcd9;
     --accent: #111; --on-accent: #fff; --accent-hover: #333; --hover-line: #a9a9a6; --focus-line: #8f8f8c;
-    --pop: #fff; --hero: #f1f1ee; --bar: #b9b9b6; --glow: rgba(0,0,0,.05); --hit: rgba(0,0,0,.04);
+    --pop: #fff; --hero: #fff; --bar: #b9b9b6; --glow: transparent; --hit: rgba(0,0,0,.04);
     --header: rgba(246,246,244,.86); --shadow: rgba(0,0,0,.14);
     color-scheme: light;
   }
@@ -38,6 +40,7 @@
   .num { font-variant-numeric: tabular-nums; }
   .muted { color: var(--ink-3); }
   .error { color: var(--critical); min-height: 1.5em; margin: 8px 0 0; }
+  .card .error:empty { display: none; }
   .grow { flex: 1; }
   .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
   .logo { flex: none; color: var(--ink); }
@@ -47,14 +50,19 @@
 
   input, select { background: var(--surface); border: 1px solid var(--line-2); border-radius: 999px; padding: 6px 14px; outline: 0; }
   input:focus, select:focus { border-color: var(--focus-line); }
-  input[type="date"] { padding: 5px 12px; }
+  select { appearance: none; -webkit-appearance: none; padding-right: 32px; cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none' stroke='%23888' stroke-width='1.6'%3E%3Cpath d='m1 1 4 4 4-4'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 13px center; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line-2); border-radius: 999px; padding: 5px 14px; color: var(--ink-2); font-size: 12px; white-space: nowrap; }
+  .chip b { color: var(--ink); font-weight: 500; }
+  .datebtn { position: relative; display: inline-flex; }
+  .datebtn .btn { display: inline-flex; align-items: center; gap: 8px; }
+  .datebtn input { position: absolute; inset: 0; opacity: 0; pointer-events: none; width: 100%; }
   input.wide { min-width: 260px; }
   .btn { border: 1px solid var(--line-2); border-radius: 999px; padding: 5px 14px; color: var(--ink-2); font-size: 12px; white-space: nowrap; }
   .btn:hover:not(:disabled) { color: var(--ink); border-color: var(--hover-line); }
   .btn:disabled { opacity: .4; cursor: default; }
   .btn.w { background: var(--accent); color: var(--on-accent); border-color: var(--accent); font-weight: 500; }
   .btn.w:hover { background: var(--accent-hover); color: var(--on-accent); }
-  .btn.danger { color: var(--critical); }
+  .btn.danger:hover:not(:disabled) { color: var(--critical); border-color: var(--critical); }
   .icon-btn { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line-2); color: var(--ink-2); display: inline-grid; place-items: center; }
   .icon-btn:hover:not(:disabled) { color: var(--ink); border-color: var(--hover-line); }
   .icon-btn:disabled { opacity: .35; cursor: default; }
@@ -105,8 +113,9 @@
   .seg button[aria-pressed="true"] { background: var(--surface-2); color: var(--ink); }
   .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 12px; }
   .card { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 18px; position: relative; min-width: 0; }
-  .card h2 { font-size: 12px; font-weight: 500; color: var(--ink-2); display: flex; align-items: center; gap: 8px; margin: 0 0 12px; }
-  .card h2 .r { margin-left: auto; color: var(--ink-3); font-weight: 400; }
+  .card h2 { font-size: 13px; font-weight: 500; color: var(--ink); min-height: 20px; display: flex; align-items: center; gap: 8px; margin: 0 0 12px; }
+  .card h2 .r { margin-left: auto; color: var(--ink-3); font-weight: 400; font-size: 12px; display: inline-flex; align-items: center; gap: 10px; }
+  .card h2 .btn { margin: -6px 0; }
   .c3 { grid-column: span 3; } .c4 { grid-column: span 4; } .c5 { grid-column: span 5; } .c7 { grid-column: span 7; } .c8 { grid-column: span 8; } .c12 { grid-column: span 12; }
   .empty { color: var(--ink-3); padding: 18px 0; text-align: center; }
 
@@ -143,7 +152,6 @@
   svg .bar { fill: var(--bar); }
   svg .bar.sel { fill: var(--ink); }
   svg .bar.over { fill: var(--critical); }
-  svg text.t-over { fill: var(--critical); }
   svg .goal { stroke: var(--ink); stroke-dasharray: 4 4; pointer-events: none; }
   svg text.t-goal { fill: var(--ink-2); }
   svg .hit { fill: transparent; cursor: pointer; }
@@ -155,12 +163,21 @@
   svg .wstop { stop-color: var(--ink); }
   svg text.t-ink { fill: var(--ink); }
   .legend { display: inline-flex; align-items: center; gap: 6px; }
+  .legend + .legend { margin-left: 12px; }
+  .legend .dash { width: 14px; border-top: 1.5px dashed var(--ink); }
+  .legend .sw.over { background: var(--critical); }
+  svg .bar.none { fill: var(--bar-empty); }
 
   /* Entry feed */
-  .feed { max-height: 236px; overflow-y: auto; overflow-x: hidden; margin: 0 -6px; padding: 0 6px; }
+  .feed-card { display: flex; flex-direction: column; }
+  /* The feed does not scroll by itself: a scroll area inside the page catches a trackpad swipe and
+     stops the page. It shows what fits, and Show all opens the rest. */
+  .feed { flex: 1 1 0; min-height: 200px; overflow: hidden; margin: 0 -6px; padding: 0 6px; }
+  .feed.open { flex: none; max-height: none !important; }
+  .feed.more { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent); }
   .meal { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .06em; padding: 12px 0 4px; }
   .meal:first-child { padding-top: 0; }
-  .e { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto 24px; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
+  .e { display: grid; grid-template-columns: 62px minmax(0, 1fr) auto 24px; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
   .e .t { color: var(--ink-3); }
   .e .n { color: var(--ink); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .e .m { color: var(--ink-3); font-size: 12px; }
@@ -178,6 +195,8 @@
   .status { display: inline-flex; align-items: center; gap: 8px; }
   .status i { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3); }
   .status i.on { background: var(--good); }
+  .form > input, .form > select, .form > .btn { height: 36px; }
+  .form > .btn { padding: 0 18px; font-size: 13px; }
   .token-panel { border-color: var(--focus-line); scroll-margin-top: 140px; }
   .tp-grid { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 10px 14px; align-items: center; margin: 14px 0; }
   .tp-grid .k { color: var(--ink-3); font-size: 12px; }
@@ -189,15 +208,25 @@
   code, pre { font-family: var(--mono); font-size: 12px; }
   pre { background: var(--bg); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; color: var(--ink-2); margin: 0 0 16px; }
   .token { background: var(--bg); border: 1px solid var(--focus-line); border-radius: 14px; padding: 12px 14px; word-break: break-all; font-family: var(--mono); }
-  .connect h2 { margin-top: 4px; }
+  .connect > * { max-width: 920px; }
+  .connect h3 { font-size: 14px; font-weight: 600; margin: 26px 0 6px; }
   .connect p { color: var(--ink-2); margin: 0 0 12px; }
+  .code { position: relative; }
+  .code pre { padding-right: 76px; }
+  .code .btn { position: absolute; top: 8px; right: 8px; background: var(--surface); }
 
   #tip { position: fixed; z-index: 50; pointer-events: none; background: var(--accent); color: var(--on-accent); font-size: 12px; padding: 6px 10px; border-radius: 10px; opacity: 0; transition: opacity .08s; line-height: 1.4; white-space: pre-line; box-shadow: 0 8px 24px var(--shadow); max-width: 260px; }
   #toast { position: fixed; z-index: 60; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--accent); color: var(--on-accent); border-radius: 999px; padding: 8px 18px; font-size: 13px; box-shadow: 0 12px 40px var(--shadow); max-width: min(640px, 92vw); }
   #toast.bad { background: var(--critical); color: #fff; }
 
   /* Narrow screens and touch screens. These come last so that they win over the rules above. */
-  @media (max-width: 1080px) { .c3, .c4, .c5 { grid-column: span 6; } .c7, .c8 { grid-column: span 12; } .cmd { width: 260px; } }
+  /* Medium screens: the hero and macros share a row, and each other card has a full row. */
+  @media (max-width: 1080px) {
+    .c3, .c5 { grid-column: span 6; } .c4, .c7, .c8 { grid-column: span 12; }
+    .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .feed { flex: none; max-height: 340px; }
+    .cmd { width: 260px; }
+  }
   @media (max-width: 720px) {
     .tp-grid { grid-template-columns: minmax(0, 1fr); gap: 6px; }
     .tp-grid .k { margin-top: 6px; }
@@ -217,15 +246,23 @@
     td { padding-right: 8px; }
     .status { white-space: nowrap; }
     /* The token table has too many columns for a phone, so each token is a block: the agent and
-       Revoke on top, then the token state, access, and last use. */
+       the last use on top, then the access, the token state, and the buttons. */
     #agents-table tr:has(th) { display: none; }
-    #agents-table tr { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+    #agents-table tr { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px 10px; align-items: center; padding: 12px 0; border-top: 1px solid var(--line); }
+    #agents-table tr:first-child + tr { border-top: 0; }
     #agents-table td { display: block; border: 0; padding: 0; }
-    #agents-table td:nth-child(1) { grid-column: 1 / 4; grid-row: 1; }
-    #agents-table td:nth-child(2) { grid-column: 1; grid-row: 2; }
-    #agents-table td:nth-child(3) { grid-column: 2; grid-row: 2; }
-    #agents-table td:nth-child(4) { grid-column: 3; grid-row: 2; }
-    #agents-table td:nth-child(5) { grid-column: 4; grid-row: 1 / 3; }
+    #agents-table td:nth-child(1) { grid-column: 1 / 3; grid-row: 1; }
+    #agents-table td:nth-child(2) { grid-column: 2; grid-row: 2; font-size: 12px; }
+    #agents-table td:nth-child(3) { grid-column: 1; grid-row: 2; }
+    #agents-table td:nth-child(4) { grid-column: 3; grid-row: 1; text-align: right; font-size: 12px; white-space: nowrap; }
+    #agents-table td:nth-child(5) { grid-column: 3; grid-row: 2; white-space: nowrap; }
+    #agents-table td:nth-child(1):empty { display: none; }
+    #agents-table select { height: 34px; }
+    /* The form: the name on one row, access and expiry on the next, then the button. */
+    .form > input.wide { flex: 1 1 100%; min-width: 0; }
+    .form > select { flex: 1 1 0; min-width: 0; }
+    .form > .btn { flex: 1 1 100%; }
+    .stats { grid-template-columns: 1fr 1fr; }
     td .btn { padding: 6px 10px; }
     .pop { max-height: 60vh; }
     main { padding: 14px 14px 40px; }
@@ -233,14 +270,13 @@
     .card { padding: 16px; }
     .hero .big { font-size: 48px; }
     .feed { max-height: none; }
-    input.wide { min-width: 0; flex: 1 1 100%; }
     /* iOS zooms in on an input with text under 16 px. */
     input, select { font-size: 16px; }
   }
   /* Touch screens: no hover, so show the delete buttons and make the targets bigger. */
   @media (hover: none) {
     .x { opacity: 1; width: 32px; height: 32px; }
-    .e { grid-template-columns: 44px minmax(0, 1fr) auto 32px; }
+    .e { grid-template-columns: 62px minmax(0, 1fr) auto 32px; }
     .btn { padding: 8px 14px; }
     .icon-btn { width: 36px; height: 36px; }
     .seg button { padding: 8px 14px; }
@@ -258,10 +294,11 @@
 <div id="signin">
   <button class="icon-btn theme-toggle" type="button" data-theme-toggle aria-label="Switch to light mode" title="Switch to light mode"><svg class="moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><svg class="sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
   <div class="wordmark"><svg class="logo" width="42" height="42"><use href="#mark"/></svg>__APP_NAME__</div>
-  <div class="signin-box">
-    <input id="admin-token" type="password" autocomplete="current-password" placeholder="Admin token" aria-label="Admin token">
-    <button class="btn w" id="signin-btn">Sign in</button>
-  </div>
+  <form class="signin-box" id="signin-form">
+    <input type="text" name="username" autocomplete="username" value="admin" hidden>
+    <input id="admin-token" name="password" type="password" autocomplete="current-password" placeholder="Admin token" aria-label="Admin token" required>
+    <button class="btn w" type="submit">Sign in</button>
+  </form>
   <p class="error" id="signin-error"></p>
   <p class="muted">Type the ADMIN_TOKEN password from the deploy.</p>
 </div>
@@ -294,11 +331,11 @@
         <button class="icon-btn" id="prev-day" aria-label="Day before">‹</button>
         <button class="icon-btn" id="next-day" aria-label="Day after">›</button>
         <h1 id="day-title"></h1>
-        <input type="date" id="day" aria-label="Day">
+        <span class="datebtn"><button class="btn" id="day-btn" type="button" aria-label="Choose a day"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span id="day-label"></span></button><input type="date" id="day" tabindex="-1" aria-hidden="true"></span>
         <div class="seg" role="group" aria-label="Period">
           <button data-range="7" aria-pressed="false">7D</button><button data-range="14" aria-pressed="true">14D</button><button data-range="30" aria-pressed="false">30D</button><button data-range="90" aria-pressed="false">90D</button>
         </div>
-        <span class="btn" id="tz"></span>
+        <span class="chip" id="tz"></span>
       </div>
 
       <div class="grid">
@@ -317,21 +354,21 @@
         <section class="card c4"><div class="stats" id="stats"></div></section>
 
         <section class="card c8">
-          <h2>Calories per day <span class="r wrap"><span class="legend">- - goal</span> · <span class="legend">▲ over goal</span> · select a bar to open the day</span></h2>
+          <h2>Calories per day <span class="r wrap"><span class="legend"><i class="dash"></i>goal</span><span class="legend"><i class="sw over"></i>over goal</span></span></h2>
           <svg class="chart" id="cal" viewBox="0 0 760 220" role="img" aria-label="Calories per day"></svg>
         </section>
 
-        <section class="card c4">
-          <h2><span id="entries-title">Today</span> <span class="r" id="entries-count"></span></h2>
+        <section class="card c4 feed-card">
+          <h2><span id="entries-title">Today</span> <span class="r"><span id="entries-count"></span><button class="btn" id="entries-more" type="button" hidden>Show all</button></span></h2>
           <div class="feed" id="entries"></div>
         </section>
 
-        <section class="card c7">
+        <section class="card c8">
           <h2>Weight <span class="r" id="wt-range"></span></h2>
           <svg class="chart" id="wt" viewBox="0 0 640 190" role="img" aria-label="Body weight"></svg>
         </section>
 
-        <section class="card c5">
+        <section class="card c4">
           <h2>Agents <span class="r"><button class="btn" data-goto="agents">Manage</button></span></h2>
           <div class="table-wrap"><table id="agents-mini"></table></div>
         </section>
@@ -342,7 +379,7 @@
       <div class="grid">
         <div class="card c12">
           <h2>New agent token</h2>
-          <div class="row">
+          <div class="row form">
             <input id="agent-id" class="wide" placeholder="Agent name, for example Claude Code" maxlength="100" aria-label="Agent name">
             <select id="agent-scopes" aria-label="Access"><option value="read,write">Read and write</option><option value="read">Read only</option></select>
             <select id="agent-expiry" aria-label="Expiry"><option value="">No expiry</option><option value="30">Expires in 30 days</option><option value="90">Expires in 90 days</option><option value="365">Expires in 365 days</option></select>
@@ -371,15 +408,17 @@
     <section id="view-connect" hidden>
       <div class="card connect">
         <h2>Connect an agent</h2>
-        <p>Make a token on the Agents page. Give the agent this MCP address. Give the agent the token as a bearer token.</p>
-        <pre id="mcp-url"></pre>
-        <h2>Claude Code</h2>
-        <pre id="snippet-claude"></pre>
-        <h2>JSON configuration (Cursor, Claude Desktop with mcp-remote, and other clients)</h2>
-        <pre id="snippet-json"></pre>
-        <h2>REST</h2>
+        <p>The fastest way: make a token on the Agents page, then select <b>Copy setup prompt</b> and paste the prompt to your agent. To set up a client yourself, use the values below. Replace <code>&lt;agent token&gt;</code> with the token.</p>
+        <h3>MCP address</h3>
+        <div class="code"><pre id="mcp-url"></pre><button class="btn" data-copy="mcp-url">Copy</button></div>
+        <h3>Claude Code</h3>
+        <div class="code"><pre id="snippet-claude"></pre><button class="btn" data-copy="snippet-claude">Copy</button></div>
+        <h3>JSON configuration</h3>
+        <p>For Cursor, Claude Desktop with mcp-remote, and other clients.</p>
+        <div class="code"><pre id="snippet-json"></pre><button class="btn" data-copy="snippet-json">Copy</button></div>
+        <h3>REST</h3>
         <p>Each MCP tool is also available at <code>POST /v1/tools/&lt;name&gt;</code> with a JSON body.</p>
-        <pre id="snippet-rest"></pre>
+        <div class="code"><pre id="snippet-rest"></pre><button class="btn" data-copy="snippet-rest">Copy</button></div>
       </div>
     </section>
   </main>
@@ -471,8 +510,8 @@
   const svgText = (parent, x, y, text, attrs) => (svgEl("text", { x, y, ...attrs }, parent).textContent = text);
   // A chart draws in its own pixels, so its text keeps one size from a phone to a wide screen.
   const chartWidth = (svg, fallback) => Math.round(svg.getBoundingClientRect().width) || fallback;
-  const niceStep = (span) => {
-    const raw = span / 3;
+  const niceStep = (span, ticks = 3) => {
+    const raw = span / ticks;
     const p = 10 ** Math.floor(Math.log10(raw));
     return [1, 2, 2.5, 5, 10].find((m) => m * p >= raw) * p;
   };
@@ -522,6 +561,7 @@
     const day = state.day;
     $("day").value = day;
     $("day").max = state.today;
+    $("day-label").textContent = dateLabel(day, { month: "short", day: "numeric", year: "numeric" });
     $("next-day").disabled = day >= state.today;
     $("day-title").textContent = day === state.today ? "Today" : dateLabel(day, { weekday: "long", month: "long", day: "numeric" });
     const d = await tool("get_day", { date: day });
@@ -533,7 +573,7 @@
   async function loadPeriod() {
     const range = state.range;
     document.querySelectorAll("[data-range]").forEach((b) => b.setAttribute("aria-pressed", String(+b.dataset.range === range)));
-    const [t, w] = await Promise.all([tool("get_trends", { days: range }), tool("get_weights", { days: Math.max(range, 30) })]);
+    const [t, w] = await Promise.all([tool("get_trends", { days: range }), tool("get_weights", { days: range })]);
     if (range !== state.range) return;
     trends = t;
     weights = w;
@@ -594,7 +634,7 @@
     const stat = (k, v, unit, sub, over) => `<div class="stat"><div class="k">${k}</div><div class="v num">${v}${unit ? `<small> ${unit}</small>` : ""}</div><div class="d${over ? " over" : ""}">${sub}</div></div>`;
     const change = w.change_kg;
     const weight = w.last
-      ? stat("Weight", fmt(w.last.weight_kg), "kg", change === null || w.count < 2 ? `on ${dateLabel(w.last.date, { month: "short", day: "numeric" })}` : `${change > 0 ? "+" : change < 0 ? "−" : "±"}${fmt(Math.abs(change))} kg in ${Math.max(state.range, 30)} days`)
+      ? stat("Weight", fmt(w.last.weight_kg), "kg", change === null || w.count < 2 ? `on ${dateLabel(w.last.date, { month: "short", day: "numeric" })}` : `${change > 0 ? "+" : change < 0 ? "−" : "±"}${fmt(Math.abs(change))} kg in ${state.range} days`)
       : stat("Weight", "–", "", "No weigh-ins");
     const avg = t.average_per_logged_day?.calories;
     const average = stat(`${state.range}-day average`, avg === undefined || avg === null ? "–" : fmt(Math.round(avg)), "kcal", `${t.logged_days} of ${t.total_days} days logged`);
@@ -613,10 +653,11 @@
     svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
     const goal = t.goals?.calories ?? null;
     const vals = t.days.map((d) => d.totals?.calories ?? null);
-    const step = niceStep(Math.max(1, goal || 0, ...vals.map((v) => v || 0)) * 1.1);
-    const max = Math.ceil((Math.max(1, goal || 0, ...vals.map((v) => v || 0)) * 1.1) / step) * step;
+    // The top is a little above the highest bar or goal. Grid lines are at round steps under it.
+    const max = Math.max(1, goal || 0, ...vals.map((v) => v || 0)) * 1.08;
+    const step = niceStep(max, 4);
     const y = (v) => T + (H - T - B) * (1 - v / max);
-    for (let v = 0; v <= max + 1e-9; v += step) {
+    for (let v = 0; v <= max; v += step) {
       svgEl("line", { class: "grid-line", x1: L, x2: W - R, y1: y(v), y2: y(v) }, svg);
       svgText(svg, L - 8, y(v) + 4, v >= 1000 ? `${+(v / 1000).toFixed(1)}k` : String(v), { "text-anchor": "end" });
     }
@@ -634,7 +675,9 @@
         // Rounded at the top, square at the baseline.
         const y0 = y(0), yt = y(v), r = Math.min(radius, y0 - yt);
         svgEl("path", { class: `bar${over ? " over" : d.date === state.day ? " sel" : ""}`, d: `M${x},${y0}V${yt + r}Q${x},${yt} ${x + r},${yt}H${x + bw - r}Q${x + bw},${yt} ${x + bw},${yt + r}V${y0}Z` }, svg);
-        if (over && bw >= 18) svgText(svg, x + bw / 2, yt - 6, "▲ over", { class: "t-over", "text-anchor": "middle" });
+      } else if (bw >= 8) {
+        // A day with nothing logged gets a stub on the baseline, so the gap reads as a missed day.
+        svgEl("rect", { class: "bar none", x, y: y(0) - 3, width: bw, height: 3, rx: Math.min(1.5, bw / 2) }, svg);
       }
       const label = dateLabel(d.date, { weekday: "short", month: "short", day: "numeric" });
       const detail = v === null ? "Nothing logged" : `${whole(v)} kcal${goal ? ` · ${v > goal ? "+" : "−"}${whole(Math.abs(v - goal))} vs goal` : ""}`;
@@ -649,7 +692,7 @@
   function renderEntries(d) {
     $("entries-title").textContent = d.date === state.today ? "Today" : dateLabel(d.date, { weekday: "short", month: "short", day: "numeric" });
     $("entries-count").textContent = `${d.entry_count} ${d.entry_count === 1 ? "entry" : "entries"}`;
-    const time = (e) => (e.consumed_at ? new Date(e.consumed_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: state.tz }) : "–");
+    const time = (e) => (e.consumed_at ? new Date(e.consumed_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: state.tz }) : "–");
     const amount = (e) => (e.grams !== null ? `${fmt(e.grams)} g` : e.serving_unit ? `${fmt(e.servings)} × ${fmt(e.serving_size)} ${e.serving_unit}` : `${fmt(e.servings)} serving${e.servings === 1 ? "" : "s"}`);
     $("entries").innerHTML = d.meals.length
       ? d.meals.map((m) => `<div class="meal"><span>${esc(cap(m.meal))}</span><span class="num">${whole(m.totals.calories)} kcal</span></div>` +
@@ -659,7 +702,21 @@
             <span class="num" data-tip="${esc(`${e.name}\nP ${fmt(e.totals.protein_g)} g · C ${fmt(e.totals.carbs_g)} g · F ${fmt(e.totals.fat_g)} g`)}">${whole(e.totals.calories)}</span>
             <button class="x" data-delete-entry="${esc(e.id)}" aria-label="Delete ${esc(e.name)}">×</button></div>`).join("")).join("")
       : `<div class="empty">There are no entries for this day. Search a food above to log it.</div>`;
+    feedFade();
   }
+
+  // The feed fades at the bottom while entries are hidden. Show all opens the feed to its full height.
+  const feedFade = () => {
+    const f = $("entries"), open = f.classList.contains("open");
+    const hidden = !open && f.scrollHeight - f.clientHeight > 2;
+    f.classList.toggle("more", hidden);
+    $("entries-more").hidden = !hidden && !open;
+    $("entries-more").textContent = open ? "Show less" : "Show all";
+  };
+  $("entries-more").addEventListener("click", () => {
+    $("entries").classList.toggle("open");
+    feedFade();
+  });
 
   function renderWeight(w) {
     const svg = $("wt");
@@ -748,6 +805,7 @@
     resizeTimer = setTimeout(() => {
       if (trends) renderCalories(trends);
       if (weights) renderWeight(weights);
+      feedFade();
     }, 150);
   });
 
@@ -759,7 +817,7 @@
       ? `<tr><th>Agent</th><th>Token</th><th>Access</th><th>Last used</th><th></th></tr>` +
         agents.flatMap((a) => (a.tokens.length ? a.tokens : [null]).map((t, i) => `<tr>
           <td>${i ? "" : `<span class="status"><i class="${!a.disabled_at && a.tokens.some(activeToken) ? "on" : ""}"></i>${esc(a.name || a.id)}</span>${a.disabled_at ? ' <span class="muted">disabled</span>' : ""}`}</td>
-          <td>${t ? `<code class="col-token">${esc(t.id.slice(-8))}</code>${t.revoked_at ? ' <span class="muted">revoked</span>' : t.expires_at ? ` <span class="muted">expires ${esc(t.expires_at.slice(0, 10))}</span>` : ' <span class="muted col-token">active</span>'}` : "–"}</td>
+          <td>${t ? `<code class="col-token">${esc(t.id.slice(-8))}</code>${t.revoked_at ? ' <span class="muted">revoked</span>' : t.expires_at ? ` <span class="muted">expires ${esc(t.expires_at.slice(0, 10))}</span>` : ""}` : "–"}</td>
           <td>${t && !t.revoked_at && !a.disabled_at ? scopeSelect(t) : t ? `<span class="tag">${esc(t.scopes.join(" + "))}</span>` : ""}</td><td>${t ? esc(ago(t.last_used_at)) : ""}</td>
           <td class="r">${t && !t.revoked_at && !a.disabled_at ? `${t.viewable ? `<button class="btn" data-show-token="${esc(t.id)}">Show</button> ` : ""}<button class="btn danger" data-revoke="${esc(t.id)}">Revoke</button>` : ""}</td></tr>`)).join("")
       : `<tr><td class="empty">There are no agents. Make a token above.</td></tr>`;
@@ -893,12 +951,23 @@
     start(me);
   }
 
+  // "America/New_York" shows as "New York · EDT". The full name is in the title.
+  function zoneLabel(zone) {
+    const city = zone.split("/").pop().replace(/_/g, " ");
+    let abbr = "";
+    try { abbr = new Intl.DateTimeFormat("en-US", { timeZone: zone, timeZoneName: "short" }).formatToParts(new Date()).find((p) => p.type === "timeZoneName")?.value || ""; } catch {}
+    const b = document.createElement("b");
+    b.textContent = city;
+    return abbr && abbr !== city ? [b, ` · ${abbr}`] : [b];
+  }
+
   function start(me) {
     via = me.signed_in_with;
     state.today = me.today;
     state.day = me.today;
     state.tz = me.time_zone;
-    $("tz").textContent = me.time_zone;
+    $("tz").replaceChildren(...zoneLabel(me.time_zone));
+    $("tz").title = `Time zone: ${me.time_zone}`;
     $("who").textContent = me.email || "";
     $("signin").hidden = true;
     $("app").hidden = false;
@@ -1027,8 +1096,7 @@
 
   // ---------- events ----------
 
-  $("signin-btn").addEventListener("click", signIn);
-  $("admin-token").addEventListener("keydown", (e) => e.key === "Enter" && signIn());
+  $("signin-form").addEventListener("submit", (e) => { e.preventDefault(); signIn(); });
   $("signout").addEventListener("click", signOut);
   // Dark is the default. The choice stays in this browser; the head script applies it before paint.
   const themeLabels = () => {
@@ -1044,6 +1112,7 @@
   }));
   themeLabels();
   document.querySelectorAll(".tabs button").forEach((b) => b.addEventListener("click", () => show(b.dataset.view)));
+  $("day-btn").addEventListener("click", () => { try { $("day").showPicker(); } catch { $("day").focus(); } });
   $("day").addEventListener("change", () => $("day").value && openDay($("day").value));
   $("prev-day").addEventListener("click", () => openDay(addDays(state.day, -1)));
   $("next-day").addEventListener("click", () => openDay(addDays(state.day, 1)));
@@ -1068,6 +1137,7 @@
     }
   });
   const copy = (text, done) => navigator.clipboard.writeText(text).then(() => toast(done), fail);
+  document.querySelectorAll("[data-copy]").forEach((b) => b.addEventListener("click", () => copy($(b.dataset.copy).textContent, "Copied")));
   $("tp-copy-token").addEventListener("click", () => copy(panel.token, "Token copied"));
   $("tp-copy-mcp").addEventListener("click", () => copy(`${location.origin}/mcp`, "MCP address copied"));
   $("tp-copy-prompt").addEventListener("click", () => copy(setupPrompt(panel), "Setup prompt copied. Paste it to your agent."));
