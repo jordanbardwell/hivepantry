@@ -14,7 +14,6 @@ Goals:
 These items are not in this version. Each item is possible in a subsequent version:
 
 - A nutrition database. Agents estimate the values from their own knowledge or from a label. Then they save the food. A barcode search in Open Food Facts is the most useful next item.
-- Recipes that contain other foods.
 - Micronutrients other than fiber, sugar, and sodium.
 - More than one person for each deploy.
 - OAuth. Agents use bearer tokens. Some clients accept only OAuth for remote MCP, for example claude.ai custom connectors. For these clients, it is necessary to add the OAuth provider from `@cloudflare/workers-oauth-provider`.
@@ -64,10 +63,33 @@ Calories, protein, carbohydrates, and fat are necessary. Thus, each entry adds t
 | Table | Contents | Important points |
 | --- | --- | --- |
 | `foods` | The food library | Nutrients for one serving, the serving size and unit, and an optional `serving_grams`. With `serving_grams`, agents can log by grams. It also keeps the barcode, and `log_count` and `last_logged_at` to sort the frequent foods first. A partial unique index on the lowercase name and brand permits one active food for each name and brand. A delete only marks the row as deleted. |
+| `recipe_ingredients` | The ingredients of each recipe | A recipe is a row in `foods`. `recipe_servings` is not `null` for a recipe. Each ingredient row keeps the amount (`servings`) and a copy of the nutrients for one serving of the ingredient. The copy comes from the saved food at the time of the save, as for entries. A new list of ingredients replaces the old rows. |
 | `entries` | The food log | `local_date` (the day that the entry counts for), an optional `consumed_at`, `meal`, `servings`, and a copy of the nutrients for one serving. The copy comes from the food at the time of the log. `agent_id` shows the agent that logged the entry. `(agent_id, idempotency_key)` is unique. A delete only marks the row as deleted. |
 | `goals` | Daily targets | One row for each `effective_from` day. The last row on or before a day applies to that day. Thus, a goal change does not change earlier days. `null` means no target. |
 | `weights` | Weight measurements | The weight in kg, and an optional body fat percentage. `(agent_id, idempotency_key)` is unique. |
 | `agents`, `tokens` | Access | The tokens are SHA-256 hashes with the scopes `read` and `write`. |
+
+### Recipes
+
+A recipe is a saved food that has a list of ingredients. Thus, `search_foods`, `log_food`, `update_entry`, and `delete_food` operate on recipes as on other foods.
+
+`save_recipe` calculates the nutrients of the recipe from the ingredients:
+
+1. The worker adds the nutrients of all ingredients. This sum is the nutrients of the full batch.
+2. The worker divides the batch by `servings`. The result goes in the nutrient columns of the recipe.
+3. `recipe_total_grams` is the weight of the batch after cooking. `serving_grams` is `recipe_total_grams` divided by `servings`. Thus, an agent can log a recipe by grams.
+
+If the caller does not send `servings`, and the weight of the batch is known, one serving is 100 g. The unit is then `100 g`. A new weight keeps servings of 100 g. If the weight is not known, one serving is the full batch. The reply shows a warning in the two cases. Thus, an agent does not log the full batch as "one serving" by mistake.
+
+Cooking changes the weight of food. For example, rice absorbs water, and meat loses water. Thus, the weight of the ingredients is not the weight of the batch. If the caller does not send `total_grams`, the worker uses the sum of the ingredient weights. The reply then shows a warning.
+
+If only some ingredients have a value for fiber, sugar, or sodium, the sum is too low. The reply shows these nutrients in `incomplete_nutrients` and as a warning.
+
+An ingredient can be another recipe. The ingredient keeps a copy of the nutrients. Thus, a change to the other recipe does not change this recipe. A recipe cannot contain itself.
+
+Only `save_recipe` can change the nutrients of a recipe. `save_food` returns 409 `conflict` for a recipe.
+
+`recipe_batch_at` is the start time of the current batch. A `save_recipe` call with `ingredients` or `total_grams` starts a new batch. `get_recipe` adds the entries of the recipe that the person ate after this time. Thus, it shows the grams and servings that remain. The worker uses `consumed_at` of each entry. If an entry has only a day, it counts if the day is on or after the day of the batch. Thus, a meal from the old batch that an agent logs late does not count against the new batch. The worker keeps only one batch for each recipe. When a new batch starts, the remainder of the old batch is not counted.
 
 ### Days and time zone
 
@@ -97,10 +119,12 @@ The tools are the product. `src/tools.ts` has the only list of tools. MCP regist
 | --- | --- | --- |
 | `whoami` | read | Shows the agent ID, the scopes, the time zone, and the current date. |
 | `guide` | read | Tells how to use the tools. The MCP server instructions have the same text. |
-| `search_foods` | read | Finds words in the name and brand, or an exact barcode. An empty query shows the most frequently logged foods. |
+| `search_foods` | read | Finds words in the name and brand, or an exact barcode. An empty query shows the most frequently logged foods. `kind` shows only recipes or only plain foods. |
 | `save_food` | write | Makes or updates a food. The same name and brand updates the food. Fields that you do not send keep their values. |
-| `delete_food` | write | Marks a food as deleted. Logged entries keep their copy of the nutrients. |
-| `log_food` | write | Logs a food by `food_id`, or by name with nutrients. `save_food` also saves the food. Accepts servings or grams. Returns the entry, the totals for the day, and the quantity that remains for each goal. |
+| `delete_food` | write | Marks a food or a recipe as deleted. Logged entries keep their copy of the nutrients. |
+| `save_recipe` | write | Makes or updates a recipe from its ingredients and the weight of the cooked batch. The same name updates the recipe. Fields that you do not send keep their values. Returns the recipe and warnings. |
+| `get_recipe` | read | Shows the ingredients, the totals of the batch, the nutrients for one serving and for 100 g, and the quantity that remains of the current batch. |
+| `log_food` | write | Logs a food by `food_id`, or by name with nutrients. `save_food` also saves the food. Accepts servings or grams. Returns the entry, the totals for the day, and the quantity that remains for each goal. If the entry has more than 2000 kcal, the reply also has `warnings`. |
 | `update_entry` | write | Changes the servings, grams, meal, day, time, or note. |
 | `delete_entry` | write | Marks an entry as deleted. |
 | `get_day` | read | Shows one day by meal, with totals, goals, and the quantity that remains. |

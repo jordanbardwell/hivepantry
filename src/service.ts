@@ -14,6 +14,7 @@ import {
   type Nutrients,
   type rangeSchema,
   type saveFoodSchema,
+  type saveRecipeSchema,
   type searchFoodsSchema,
   type setGoalsSchema,
   type updateEntrySchema,
@@ -25,6 +26,7 @@ export type Ctx = { env: Env; access: Access; zone: string; now: Date };
 const CORE: Nutrient[] = ["calories", "protein_g", "carbs_g", "fat_g"];
 const LB_PER_KG = 2.2046226218;
 const MAX_RANGE_DAYS = 366;
+const LARGE_ENTRY_KCAL = 2000;
 
 type FoodRow = {
   id: string;
@@ -39,6 +41,9 @@ type FoodRow = {
   notes: string | null;
   log_count: number;
   last_logged_at: string | null;
+  recipe_servings: number | null;
+  recipe_total_grams: number | null;
+  recipe_batch_at: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -61,6 +66,21 @@ type EntryRow = {
   idempotency_key: string | null;
   created_at: string;
   updated_at: string;
+} & Nutrients;
+
+type IngredientRow = {
+  id: string;
+  recipe_id: string;
+  position: number;
+  food_id: string | null;
+  name: string;
+  brand: string | null;
+  servings: number;
+  serving_size: number | null;
+  serving_unit: string | null;
+  serving_grams: number | null;
+  note: string | null;
+  created_at: string;
 } & Nutrients;
 
 type GoalRow = { effective_from: string } & Nutrients;
@@ -90,7 +110,11 @@ function nutrientsOf(row: Partial<Nutrients>): Nutrients {
 }
 
 function rounded(values: Nutrients): Nutrients {
-  return Object.fromEntries(NUTRIENTS.map((n) => [n, round(values[n])])) as Nutrients;
+  return roundedTo(values, 1);
+}
+
+function roundedTo(values: Nutrients, digits: number): Nutrients {
+  return Object.fromEntries(NUTRIENTS.map((n) => [n, round(values[n], digits)])) as Nutrients;
 }
 
 function scaled(perServing: Nutrients, servings: number): Nutrients {
@@ -164,9 +188,11 @@ function foodOut(row: FoodRow) {
     serving_size: row.serving_size,
     serving_unit: row.serving_unit,
     serving_grams: row.serving_grams,
-    per_serving: nutrientsOf(row),
+    // A recipe's amounts are calculated, so round away the float noise. A plain food shows what was saved.
+    per_serving: row.recipe_servings === null ? nutrientsOf(row) : roundedTo(nutrientsOf(row), 2),
     barcode: row.barcode,
     notes: row.notes,
+    is_recipe: row.recipe_servings !== null,
     log_count: row.log_count,
     last_logged_at: row.last_logged_at,
     updated_at: row.updated_at,
@@ -184,6 +210,7 @@ function entryOut(row: EntryRow) {
     name: row.name,
     brand: row.brand,
     servings: round(row.servings, 3),
+    grams: row.serving_grams === null ? null : round(row.servings * row.serving_grams),
     serving_size: row.serving_size,
     serving_unit: row.serving_unit,
     serving_grams: row.serving_grams,
@@ -267,6 +294,7 @@ export async function searchFoods(ctx: Ctx, input: z.infer<typeof searchFoodsSch
     sql += " AND barcode = ?";
     binds.push(input.barcode);
   }
+  if (input.kind) sql += input.kind === "recipe" ? " AND recipe_servings IS NOT NULL" : " AND recipe_servings IS NULL";
   for (const word of words) {
     sql += " AND (name_key || ' ' || brand_key) LIKE ? ESCAPE '\\'";
     binds.push(`%${escapeLike(word)}%`);
@@ -286,6 +314,10 @@ export async function saveFood(ctx: Ctx, input: z.infer<typeof saveFoodSchema>) 
   const existing = input.id
     ? await loadFood(ctx.env, input.id)
     : await db.prepare("SELECT * FROM foods WHERE name_key = ? AND brand_key = ? AND deleted_at IS NULL").bind(keys.name_key, keys.brand_key).first<FoodRow>();
+  // A recipe's nutrients come from its ingredients, so only save_recipe changes them.
+  if (existing?.recipe_servings != null) {
+    throw new PantryError("conflict", `"${existing.name}" is a recipe. Change it with save_recipe, or choose another name.`);
+  }
 
   // A field that is not sent keeps its saved value. null clears an optional field.
   const pick = <K extends keyof FoodRow>(field: K, sent: FoodRow[K] | undefined, fallback: FoodRow[K]): FoodRow[K] =>
@@ -357,16 +389,10 @@ function servingsFor(servings: number | undefined, grams: number | undefined, se
   return grams / servingGrams;
 }
 
-export async function logFood(ctx: Ctx, input: z.infer<typeof logFoodSchema>) {
-  const db = ctx.env.DB;
-  const replay = async () => {
-    if (!input.idempotency_key) return null;
-    const row = await db.prepare("SELECT * FROM entries WHERE agent_id = ? AND idempotency_key = ?").bind(ctx.access.agentId, input.idempotency_key).first<EntryRow>();
-    return row ? { entry: entryOut(row), replayed: true, day: await dayTotals(ctx.env, row.local_date) } : null;
-  };
-  const earlier = await replay();
-  if (earlier) return earlier;
+type SourceInput = Pick<z.infer<typeof logFoodSchema>, "food_id" | "name" | "brand" | "serving_size" | "serving_unit" | "serving_grams" | "save_food" | Nutrient>;
 
+// A saved food by food_id, or a name with per-serving nutrients. Shared by log_food and recipe ingredients.
+async function resolveSource(ctx: Ctx, input: SourceInput): Promise<Source> {
   const sentNutrients = NUTRIENTS.filter((n) => input[n] !== undefined);
   let source: Source;
   if (input.food_id) {
@@ -407,7 +433,20 @@ export async function logFood(ctx: Ctx, input: z.infer<typeof logFoodSchema>) {
       };
     }
   }
+  return source;
+}
 
+export async function logFood(ctx: Ctx, input: z.infer<typeof logFoodSchema>) {
+  const db = ctx.env.DB;
+  const replay = async () => {
+    if (!input.idempotency_key) return null;
+    const row = await db.prepare("SELECT * FROM entries WHERE agent_id = ? AND idempotency_key = ?").bind(ctx.access.agentId, input.idempotency_key).first<EntryRow>();
+    return row ? { entry: entryOut(row), replayed: true, day: await dayTotals(ctx.env, row.local_date) } : null;
+  };
+  const earlier = await replay();
+  if (earlier) return earlier;
+
+  const source = await resolveSource(ctx, input);
   const servings = servingsFor(input.servings, input.grams, source.serving_grams);
   const consumedAt = input.consumed_at ? parseInstant(input.consumed_at, "consumed_at") : input.date ? null : ctx.now;
   const date = input.date !== undefined ? resolveDate(ctx, input.date) : localDate(consumedAt!, ctx.zone);
@@ -442,7 +481,10 @@ export async function logFood(ctx: Ctx, input: z.infer<typeof logFoodSchema>) {
     }
     throw err;
   }
-  return { entry: entryOut(await loadEntry(ctx.env, id)), replayed: false, day: await dayTotals(ctx.env, date) };
+  const entry = entryOut(await loadEntry(ctx.env, id));
+  // A typo or a whole recipe batch logged as "one serving" shows up here. Tell the agent to check.
+  const warnings = entry.totals.calories! > LARGE_ENTRY_KCAL ? [`This entry is ${entry.totals.calories} kcal, more than most meals. Check the amount with the person, and fix it with update_entry if it is wrong.`] : [];
+  return { entry, replayed: false, day: await dayTotals(ctx.env, date), ...(warnings.length ? { warnings } : {}) };
 }
 
 export async function updateEntry(ctx: Ctx, input: z.infer<typeof updateEntrySchema>) {
@@ -624,4 +666,219 @@ export async function deleteWeight(ctx: Ctx, input: z.infer<typeof idSchema>) {
   const result = await ctx.env.DB.prepare("UPDATE weights SET deleted_at = ?, deleted_by = ? WHERE id = ? AND deleted_at IS NULL").bind(ctx.now.toISOString(), ctx.access.agentId, input.id).run();
   if (!result.meta.changes) throw new PantryError("not_found", `No weight with id ${input.id}`);
   return { id: input.id, deleted: true };
+}
+
+// ---------- recipes ----------
+
+type Ingredient = { source: Source; servings: number; note: string | null };
+
+const OPTIONAL: Nutrient[] = NUTRIENTS.filter((n) => !CORE.includes(n));
+const PER_100G = "100 g";
+
+function ingredientGrams(servings: number, servingGrams: number | null): number | null {
+  return servingGrams === null ? null : servings * servingGrams;
+}
+
+// A nutrient is incomplete when some ingredients report it and others do not, so the sum is too low.
+function incompleteNutrients(items: Nutrients[]): Nutrient[] {
+  return OPTIONAL.filter((n) => items.some((i) => i[n] === null) && items.some((i) => i[n] !== null));
+}
+
+async function loadIngredients(env: Env, recipeId: string): Promise<IngredientRow[]> {
+  const result = await env.DB.prepare("SELECT * FROM recipe_ingredients WHERE recipe_id = ? ORDER BY position").bind(recipeId).all<IngredientRow>();
+  return result.results;
+}
+
+async function loadRecipe(env: Env, id: string): Promise<FoodRow> {
+  const food = await loadFood(env, id);
+  if (food.recipe_servings === null) throw new PantryError("not_found", `${food.name} (${id}) is a plain food, not a recipe`);
+  return food;
+}
+
+async function recipeOut(ctx: Ctx, food: FoodRow) {
+  const env = ctx.env;
+  const servings = food.recipe_servings!;
+  const totalGrams = food.recipe_total_grams;
+  const rows = await loadIngredients(env, food.id);
+  const ingredients = rows.map((row) => ({ row, totals: scaled(nutrientsOf(row), row.servings), grams: ingredientGrams(row.servings, row.serving_grams) }));
+  const batchTotals = sum(ingredients.map((i) => i.totals));
+  const rawGrams = ingredients.every((i) => i.grams !== null) ? ingredients.reduce((a, i) => a + i.grams!, 0) : null;
+
+  // What was eaten from the current batch: entries of this recipe eaten since the batch started. An
+  // entry with a day but no time counts from the day the batch started. Thus, a meal from the old
+  // batch that is logged late does not count against the new one.
+  const batchAt = food.recipe_batch_at ?? food.created_at;
+  const eaten = await env.DB.prepare(
+    `SELECT COUNT(*) AS entry_count, SUM(servings) AS servings, SUM(servings * serving_grams) AS grams FROM entries
+     WHERE food_id = ? AND deleted_at IS NULL AND (consumed_at >= ? OR (consumed_at IS NULL AND local_date >= ?))`,
+  )
+    .bind(food.id, batchAt, localDate(new Date(batchAt), ctx.zone))
+    .first<{ entry_count: number; servings: number | null; grams: number | null }>();
+  const eatenGrams = totalGrams === null ? null : (eaten?.grams ?? 0);
+  const eatenServings = totalGrams === null ? (eaten?.servings ?? 0) : eatenGrams! / food.serving_grams!;
+
+  return {
+    id: food.id,
+    name: food.name,
+    servings,
+    serving_unit: food.serving_unit,
+    total_grams: totalGrams === null ? null : round(totalGrams),
+    serving_grams: food.serving_grams === null ? null : round(food.serving_grams),
+    raw_grams: rawGrams === null ? null : round(rawGrams),
+    per_serving: rounded(nutrientsOf(food)),
+    per_100g: totalGrams ? rounded(scaled(batchTotals, 100 / totalGrams)) : null,
+    batch_totals: rounded(batchTotals),
+    incomplete_nutrients: incompleteNutrients(rows.map((r) => nutrientsOf(r))),
+    ingredients: ingredients.map(({ row, totals, grams }) => ({
+      position: row.position,
+      food_id: row.food_id,
+      name: row.name,
+      brand: row.brand,
+      servings: round(row.servings, 3),
+      grams: grams === null ? null : round(grams),
+      serving_size: row.serving_size,
+      serving_unit: row.serving_unit,
+      totals: rounded(totals),
+      note: row.note,
+    })),
+    batch: {
+      started_at: food.recipe_batch_at,
+      entry_count: eaten?.entry_count ?? 0,
+      eaten_grams: eatenGrams === null ? null : round(eatenGrams),
+      left_grams: eatenGrams === null ? null : round(Math.max(0, totalGrams! - eatenGrams)),
+      left_servings: round(Math.max(0, servings - eatenServings), 2),
+    },
+    notes: food.notes,
+    log_count: food.log_count,
+    updated_at: food.updated_at,
+  };
+}
+
+export async function getRecipe(ctx: Ctx, input: z.infer<typeof idSchema>) {
+  return { recipe: await recipeOut(ctx, await loadRecipe(ctx.env, input.id)) };
+}
+
+export async function saveRecipe(ctx: Ctx, input: z.infer<typeof saveRecipeSchema>) {
+  const db = ctx.env.DB;
+  const now = ctx.now.toISOString();
+  const key = nameKey(input.name);
+  let existing: FoodRow | null;
+  if (input.id) {
+    existing = await loadRecipe(ctx.env, input.id);
+  } else {
+    existing = await db.prepare("SELECT * FROM foods WHERE name_key = ? AND brand_key = '' AND deleted_at IS NULL").bind(key).first<FoodRow>();
+    if (existing && existing.recipe_servings === null) {
+      throw new PantryError("conflict", `A plain food is already named "${existing.name}". Choose another name for the recipe, or delete that food first.`);
+    }
+  }
+  if (!existing && !input.ingredients) throw new PantryError("invalid", "A new recipe needs ingredients");
+
+  // Resolve every ingredient to a per-serving snapshot and an amount, as log_food does. The first
+  // pass only checks, so a bad ingredient fails the call before save_food writes any of the others.
+  let ingredients: Ingredient[];
+  if (input.ingredients) {
+    ingredients = [];
+    for (const save of [false, true]) {
+      for (const [index, item] of input.ingredients.entries()) {
+        if (save && !item.save_food) continue;
+        try {
+          if (existing && item.food_id === existing.id) throw new PantryError("invalid", "A recipe cannot contain itself");
+          const source = await resolveSource(ctx, save ? item : { ...item, save_food: false });
+          ingredients[index] = { source, servings: servingsFor(item.servings, item.grams, source.serving_grams), note: item.note ?? null };
+        } catch (err) {
+          if (err instanceof PantryError) throw new PantryError(err.code, `ingredients[${index}]${item.name ? ` (${item.name})` : ""}: ${err.message}`);
+          throw err;
+        }
+      }
+    }
+  } else {
+    ingredients = (await loadIngredients(ctx.env, existing!.id)).map((row) => ({ source: { ...row, perServing: nutrientsOf(row) }, servings: row.servings, note: row.note }));
+  }
+
+  const totals = ingredients.map((i) => scaled(i.source.perServing, i.servings));
+  const batchTotals = sum(totals);
+  const grams = ingredients.map((i) => ingredientGrams(i.servings, i.source.serving_grams));
+  const rawGrams = grams.every((g) => g !== null) ? grams.reduce((a, g) => a + g!, 0) : null;
+
+  const warnings: string[] = [];
+  let totalGrams: number | null;
+  if (input.total_grams !== undefined) totalGrams = input.total_grams;
+  else if (existing?.recipe_total_grams != null) {
+    totalGrams = existing.recipe_total_grams;
+    if (input.ingredients) warnings.push(`total_grams stays at the saved ${round(totalGrams)} g. If this batch weighs something else, send total_grams.`);
+  } else {
+    totalGrams = rawGrams;
+    if (rawGrams !== null) warnings.push(`total_grams is the raw weight of the ingredients (${round(rawGrams)} g). Cooking usually changes the weight; weigh the finished batch and send total_grams.`);
+  }
+  if (totalGrams === null) warnings.push("The weight of the batch is not known, so it cannot be logged by grams. Send total_grams, or log it by servings.");
+  if (totalGrams !== null && rawGrams !== null && (totalGrams < rawGrams * 0.3 || totalGrams > rawGrams * 3)) {
+    warnings.push(`total_grams (${round(totalGrams)} g) is far from the raw weight of the ingredients (${round(rawGrams)} g). Make sure it is the weight of the food only, without the pot.`);
+  }
+  for (const n of incompleteNutrients(ingredients.map((i) => i.source.perServing))) {
+    warnings.push(`${n} is known for only some ingredients, so the recipe value is too low.`);
+  }
+
+  // Without a count of servings, one serving of a weighed batch is 100 g, so "one serving" is never
+  // the whole pot by mistake. A batch without a weight stays one serving.
+  const DEFAULT_UNITS = ["batch", "serving", PER_100G];
+  const per100g = input.servings === undefined && input.serving_unit === undefined && totalGrams !== null && (!existing || existing.serving_unit === PER_100G || existing.serving_unit === "batch");
+  const servings = input.servings ?? (per100g ? totalGrams! / 100 : (existing?.recipe_servings ?? 1));
+  const savedUnit = existing && !DEFAULT_UNITS.includes(existing.serving_unit) ? existing.serving_unit : null;
+  if (input.servings === undefined && !existing) {
+    warnings.push(
+      per100g
+        ? "servings was not sent, so one serving is 100 g. Log this recipe by grams, or ask the person how many servings the batch makes and send servings."
+        : "servings was not sent, so one serving is the full batch. Ask the person how many servings the batch makes and send servings.",
+    );
+  }
+  // Sending ingredients or a weight means a new batch was cooked, so the leftover count starts again.
+  const newBatch = !existing || input.ingredients !== undefined || input.total_grams !== undefined;
+  const values = {
+    name: input.name,
+    name_key: key,
+    serving_size: 1,
+    serving_unit: input.serving_unit ?? (per100g ? PER_100G : (savedUnit ?? (servings === 1 ? "batch" : "serving"))),
+    serving_grams: totalGrams === null ? null : totalGrams / servings,
+    ...scaled(batchTotals, 1 / servings),
+    notes: input.notes !== undefined ? input.notes : (existing?.notes ?? null),
+    recipe_servings: servings,
+    recipe_total_grams: totalGrams,
+    recipe_batch_at: newBatch ? now : existing!.recipe_batch_at,
+  };
+  const columns = Object.keys(values) as (keyof typeof values)[];
+  const id = existing?.id ?? ulid(ctx.now.getTime());
+
+  const statements = [
+    existing
+      ? db.prepare(`UPDATE foods SET ${columns.map((c) => `${c} = ?`).join(", ")}, updated_at = ? WHERE id = ?`).bind(...columns.map((c) => values[c]), now, id)
+      : db
+          .prepare(`INSERT INTO foods (id, brand_key, ${columns.join(", ")}, created_by, created_at, updated_at) VALUES (?, '', ${columns.map(() => "?").join(", ")}, ?, ?, ?)`)
+          .bind(id, ...columns.map((c) => values[c]), ctx.access.agentId, now, now),
+  ];
+  if (input.ingredients) {
+    statements.push(db.prepare("DELETE FROM recipe_ingredients WHERE recipe_id = ?").bind(id));
+    ingredients.forEach(({ source, servings: amount, note }, position) => {
+      statements.push(
+        db
+          .prepare(
+            `INSERT INTO recipe_ingredients (id, recipe_id, position, food_id, name, brand, servings, serving_size, serving_unit, serving_grams,
+               ${NUTRIENTS.join(", ")}, note, created_at)
+             VALUES (${Array(10 + NUTRIENTS.length + 2).fill("?").join(", ")})`,
+          )
+          .bind(
+            ulid(ctx.now.getTime()), id, position, source.food_id, source.name, source.brand, amount,
+            source.serving_size, source.serving_unit, source.serving_grams,
+            ...NUTRIENTS.map((n) => source.perServing[n]),
+            note, now,
+          ),
+      );
+    });
+  }
+  try {
+    await db.batch(statements);
+  } catch (err) {
+    if (isUniqueViolation(err)) throw new PantryError("conflict", `Another saved food or recipe is already named "${input.name}". Update that one instead.`);
+    throw err;
+  }
+  return { recipe: await recipeOut(ctx, await loadFood(ctx.env, id)), created: !existing, warnings };
 }

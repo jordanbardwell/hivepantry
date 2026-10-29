@@ -9,6 +9,7 @@ HivePantry is a log of calories and macronutrients for AI agents. Agents record 
 - Agents log food from a saved food, or from a name with calories, protein, carbohydrates, and fat.
 - Each log reply shows the totals for the day and the quantity that remains for each goal.
 - The food library keeps foods that you eat frequently. Agents find a food by name, brand, or barcode. Agents log a food by servings or by grams.
+- Agents save recipes from their ingredients and the weight of the cooked batch. Then you weigh your portion, and the agent logs it by grams. The recipe shows the nutrients for one serving and for 100 g, and the quantity that remains of the batch.
 - You can set daily goals for calories, protein, carbohydrates, fat, fiber, sugar, and sodium. A goal change does not change the goals of earlier days.
 - Agents show daily totals and trends for a period. Agents also log your body weight in kg or lb.
 - Each agent has its own token. A token has read access, or read and write access. Each entry shows the agent that logged it.

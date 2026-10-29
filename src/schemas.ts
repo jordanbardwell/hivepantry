@@ -40,6 +40,7 @@ export const empty = z.object({});
 export const searchFoodsSchema = z.object({
   query: text(200).optional().describe("Words to match in the food name or brand. Leave empty to list the most-logged foods."),
   barcode: text(64).optional().describe("Exact barcode (UPC/EAN) to match."),
+  kind: z.enum(["food", "recipe"]).optional().describe('"recipe" lists only recipes, "food" only plain foods. Default both.'),
   limit: z.number().int().min(1).max(50).optional().describe("Default 10."),
 });
 
@@ -74,6 +75,49 @@ export const logFoodSchema = z.object({
   consumed_at: instant.optional().describe("When it was eaten. Sets date when date is not sent."),
   note: text(500).nullable().optional(),
   idempotency_key: idempotencyKey.optional(),
+});
+
+// One ingredient: a saved food, or a name with per-serving nutrients, and the amount that went in.
+const ingredientSchema = z.object({
+  food_id: id.optional().describe("A saved food (or another recipe) from search_foods."),
+  name: text(200).min(1).optional().describe("For an ingredient that is not saved: its name. Then also send calories, protein_g, carbs_g, and fat_g per serving."),
+  brand: text(200).nullable().optional(),
+  ...serving,
+  calories: coreNutrients.calories.optional(),
+  protein_g: coreNutrients.protein_g.optional(),
+  carbs_g: coreNutrients.carbs_g.optional(),
+  fat_g: coreNutrients.fat_g.optional(),
+  ...extraNutrients,
+  save_food: z.boolean().optional().describe("Also save this ingredient to the library. Only with name and nutrients."),
+  servings: z.number().positive().max(10_000).optional().describe("How many servings of the ingredient went in. Default 1."),
+  grams: z.number().positive().max(1_000_000).optional().describe("Instead of servings: grams that went in, weighed as the nutrients describe it (usually raw)."),
+  note: text(200).nullable().optional(),
+});
+
+export const saveRecipeSchema = z.object({
+  id: id.optional().describe("Update this recipe. Without it, a recipe with the same name is updated, or a new one is made."),
+  name: text(200).min(1),
+  ingredients: z
+    .array(ingredientSchema)
+    .min(1)
+    .max(100)
+    .optional()
+    .describe("Everything that went in. Needed for a new recipe. On an update, the list replaces the saved one; leave it out to keep it."),
+  total_grams: z
+    .number()
+    .positive()
+    .max(1_000_000)
+    .nullable()
+    .optional()
+    .describe("Weight of the whole finished batch in grams, after cooking, without the pot. Lets you log by grams eaten. Default: the sum of the ingredient grams."),
+  servings: z
+    .number()
+    .positive()
+    .max(1000)
+    .optional()
+    .describe("How many servings the batch makes. Ask the person. Default: one serving is 100 g when the weight is known, or else the whole batch."),
+  serving_unit: text(40).min(1).optional().describe('What to call one serving, for example "bowl". Default "serving", "100 g", or "batch".'),
+  notes: text(1000).nullable().optional(),
 });
 
 export const updateEntrySchema = z.object({
