@@ -3,108 +3,333 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
 <title>__APP_NAME__ console</title>
 <style nonce="__CSP_NONCE__">
   :root {
-    --bg: #fbfaf7; --panel: #ffffff; --text: #1f1d1a; --muted: #6b665e; --line: #e7e2d9;
-    --accent: #b7791f; --accent-soft: #fdf3e1; --bad: #b42318; --good: #2f7d4f;
-    --font: system-ui, -apple-system, "Segoe UI", sans-serif; --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg: #161513; --panel: #1f1e1b; --text: #eeeae3; --muted: #a39e94; --line: #34312c; --accent: #e0a64a; --accent-soft: #2e2617; --bad: #f97066; --good: #6cc391; }
+    --bg: #000; --surface: #0c0c0c; --surface-2: #161616; --line: #1d1d1d; --line-2: #2a2a2a;
+    --ink: #f2f2f2; --ink-2: #a3a3a3; --ink-3: #6b6b6b;
+    /* Macro colors: categorical slots 1-3, checked for color-blind separation and contrast on --surface. */
+    --protein: #3987e5; --carbs: #d95926; --fat: #199e70;
+    --good: #0ca30c; --critical: #e66767;
+    --font: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+    color-scheme: dark;
   }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 var(--font); }
-  header { display: flex; align-items: center; gap: 16px; padding: 14px 20px; border-bottom: 1px solid var(--line); background: var(--panel); flex-wrap: wrap; }
-  header h1 { font-size: 17px; margin: 0; }
-  nav { display: flex; gap: 4px; flex-wrap: wrap; }
-  nav button { background: none; border: 0; padding: 6px 10px; border-radius: 6px; color: var(--muted); cursor: pointer; font: inherit; }
-  nav button[aria-current="page"] { background: var(--accent-soft); color: var(--text); }
-  main { max-width: 920px; margin: 0 auto; padding: 20px 16px 60px; }
-  section[hidden] { display: none; }
-  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
-  h2 { font-size: 15px; margin: 0 0 12px; }
-  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  input, select { font: inherit; padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--text); }
-  button.primary, button.ghost { font: inherit; padding: 7px 12px; border-radius: 6px; cursor: pointer; border: 1px solid var(--accent); }
-  button.primary { background: var(--accent); color: #fff; }
-  button.ghost { background: none; color: var(--text); border-color: var(--line); }
-  button.danger { color: var(--bad); }
-  .muted { color: var(--muted); }
-  .error { color: var(--bad); min-height: 1.5em; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
-  .stat .label { color: var(--muted); font-size: 13px; }
-  .stat .value { font-size: 22px; font-variant-numeric: tabular-nums; }
-  .bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; margin-top: 6px; }
-  .bar span { display: block; height: 100%; background: var(--accent); }
-  .bar span.over { background: var(--bad); }
-  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
-  th, td { text-align: left; padding: 7px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
-  th { color: var(--muted); font-weight: 500; font-size: 13px; }
-  td.num, th.num { text-align: right; }
-  .table-wrap { overflow-x: auto; }
-  code, pre { font-family: var(--mono); font-size: 13px; }
-  pre { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 10px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; }
-  .token { background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 6px; padding: 10px; word-break: break-all; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.5 var(--font); -webkit-font-smoothing: antialiased; }
+  button, input, select { font: inherit; color: inherit; }
+  button { background: none; border: 0; cursor: pointer; padding: 0; -webkit-tap-highlight-color: transparent; }
+  [hidden] { display: none !important; }
+  .num { font-variant-numeric: tabular-nums; }
+  .muted { color: var(--ink-3); }
+  .error { color: var(--critical); min-height: 1.5em; margin: 8px 0 0; }
   .grow { flex: 1; }
-  .mb { margin-bottom: 12px; }
-  td.wide { width: 40%; }
-  #signin { max-width: 420px; margin: 60px auto; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .logo { flex: none; }
+
+  input, select { background: var(--surface); border: 1px solid var(--line-2); border-radius: 999px; padding: 6px 14px; outline: 0; }
+  input:focus, select:focus { border-color: #555; }
+  input[type="date"] { padding: 5px 12px; }
+  input.wide { min-width: 260px; }
+  .btn { border: 1px solid var(--line-2); border-radius: 999px; padding: 5px 14px; color: var(--ink-2); font-size: 12px; white-space: nowrap; }
+  .btn:hover:not(:disabled) { color: var(--ink); border-color: #444; }
+  .btn:disabled { opacity: .4; cursor: default; }
+  .btn.w { background: #fff; color: #000; border-color: #fff; font-weight: 500; }
+  .btn.w:hover { background: #ddd; color: #000; }
+  .btn.danger { color: var(--critical); }
+  .icon-btn { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line-2); color: var(--ink-2); display: inline-grid; place-items: center; }
+  .icon-btn:hover:not(:disabled) { color: var(--ink); border-color: #444; }
+  .icon-btn:disabled { opacity: .35; cursor: default; }
+
+  /* Sign-in */
+  #signin { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; position: relative; overflow: hidden; }
+  #signin::before { content: ""; position: absolute; left: 50%; bottom: -420px; width: 1200px; height: 640px; transform: translateX(-50%); background: radial-gradient(closest-side, rgba(255,255,255,.07), transparent 70%); pointer-events: none; }
+  .wordmark { display: flex; align-items: center; gap: 14px; font-size: 36px; font-weight: 600; letter-spacing: -0.03em; }
+  .signin-box { margin-top: 28px; width: min(480px, 100%); background: var(--surface); border: 1px solid var(--line-2); border-radius: 28px; padding: 8px 8px 8px 20px; display: flex; gap: 8px; align-items: center; }
+  .signin-box input { flex: 1; border: 0; background: none; padding: 8px 0; font-size: 15px; }
+  #signin p { max-width: 480px; text-align: center; }
+
+  /* Header */
+  header { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 18px; padding: 10px 24px; background: rgba(0,0,0,.82); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 15px; }
+  .tabs { display: flex; gap: 2px; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 3px; }
+  .tabs button { padding: 5px 14px; border-radius: 999px; color: var(--ink-2); }
+  .tabs button[aria-current="page"] { background: #fff; color: #000; }
+  .tabs button:not([aria-current="page"]):hover { color: var(--ink); }
+  .who { color: var(--ink-3); font-size: 12px; }
+
+  /* Command box: search the food library and log from it */
+  .cmd { position: relative; width: 380px; }
+  .cmd-field { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line-2); border-radius: 999px; padding: 0 8px 0 14px; background: var(--surface); color: var(--ink-3); }
+  .cmd-field:focus-within { border-color: #555; }
+  .cmd-field input { flex: 1; border: 0; background: none; padding: 7px 0; min-width: 0; }
+  .cmd-field input::placeholder { color: var(--ink-3); }
+  kbd { font: 11px var(--mono); border: 1px solid var(--line-2); border-radius: 5px; padding: 0 5px; color: var(--ink-3); }
+  .pop { position: absolute; top: calc(100% + 8px); left: 0; right: 0; background: #0e0e0e; border: 1px solid var(--line-2); border-radius: 20px; padding: 6px; box-shadow: 0 24px 60px rgba(0,0,0,.7); max-height: 70vh; overflow-y: auto; }
+  .pop .hd { font-size: 11px; color: var(--ink-3); padding: 6px 10px 4px; }
+  .res { display: flex; width: 100%; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; text-align: left; }
+  .res:hover, .res.on { background: var(--surface-2); }
+  .res .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .res .kc { color: var(--ink-3); font-size: 12px; }
+  .logf { padding: 10px; display: flex; flex-direction: column; gap: 10px; }
+  .logf .head { display: flex; align-items: center; gap: 8px; }
+  .logf .head b { font-weight: 600; font-size: 14px; }
+  .logf input[type="number"] { width: 90px; }
+  .logf .total { color: var(--ink-2); }
+  .logf .total em { font-style: normal; color: var(--ink); font-weight: 600; }
+
+  /* Layout */
+  main { max-width: 1320px; margin: 0 auto; padding: 22px 24px 48px; }
+  .filters { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .filters h1 { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; margin: 0 auto 0 8px; }
+  .seg { display: flex; border: 1px solid var(--line-2); border-radius: 999px; overflow: hidden; }
+  .seg button { padding: 5px 12px; color: var(--ink-2); }
+  .seg button[aria-pressed="true"] { background: var(--surface-2); color: var(--ink); }
+  .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 12px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 18px; position: relative; min-width: 0; }
+  .card h2 { font-size: 12px; font-weight: 500; color: var(--ink-2); display: flex; align-items: center; gap: 8px; margin: 0 0 12px; }
+  .card h2 .r { margin-left: auto; color: var(--ink-3); font-weight: 400; }
+  .c3 { grid-column: span 3; } .c4 { grid-column: span 4; } .c5 { grid-column: span 5; } .c7 { grid-column: span 7; } .c8 { grid-column: span 8; } .c12 { grid-column: span 12; }
+  .empty { color: var(--ink-3); padding: 18px 0; text-align: center; }
+
+  /* Hero number */
+  .hero { background: radial-gradient(120% 100% at 0% 0%, #1b1b1b 0%, var(--surface) 55%); }
+  .hero .big { font-size: 56px; font-weight: 600; letter-spacing: -0.04em; line-height: 1; }
+  .hero .big.over { color: var(--critical); }
+  .hero .sub { color: var(--ink-3); font-size: 14px; margin-top: 8px; }
+  .badge { margin-top: 14px; display: inline-flex; gap: 6px; align-items: center; border: 1px solid var(--line-2); border-radius: 999px; padding: 3px 10px; color: var(--ink-2); font-size: 12px; }
+
+  /* Meters */
+  .macro { margin-bottom: 14px; }
+  .macro:last-child { margin-bottom: 0; }
+  .macro .row { flex-wrap: nowrap; }
+  .macro b { font-weight: 500; }
+  .macro .v { margin-left: auto; color: var(--ink-2); }
+  .macro .v em { font-style: normal; color: var(--ink); }
+  .track { position: relative; height: 8px; border-radius: 4px; background: var(--surface-2); margin-top: 6px; overflow: hidden; }
+  .track i { position: absolute; inset: 0 auto 0 0; border-radius: 4px; width: 0; }
+  .sw { width: 8px; height: 8px; border-radius: 2px; display: inline-block; flex: none; }
+  .protein { background: var(--protein); } .carbs { background: var(--carbs); } .fat { background: var(--fat); }
+
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 18px; }
+  .stat .k { color: var(--ink-3); }
+  .stat .v { font-size: 26px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.25; }
+  .stat .v small { font-size: 13px; color: var(--ink-3); font-weight: 400; letter-spacing: 0; }
+  .stat .d { font-size: 12px; color: var(--ink-2); }
+  .stat .d.over { color: var(--critical); }
+
+  /* Charts */
+  svg.chart { width: 100%; display: block; overflow: visible; touch-action: pan-y; }
+  svg text { fill: var(--ink-3); font-size: 11px; font-family: var(--font); }
+  svg .grid-line { stroke: var(--line); }
+  svg .bar { fill: #5a5a5a; }
+  svg .bar.sel { fill: var(--ink); }
+  svg .bar.over { fill: var(--critical); }
+  svg text.t-over { fill: var(--critical); }
+  svg .goal { stroke: var(--ink); stroke-dasharray: 4 4; pointer-events: none; }
+  svg text.t-goal { fill: var(--ink-2); }
+  svg .hit { fill: transparent; cursor: pointer; }
+  svg .hit:hover { fill: rgba(255,255,255,.04); }
+  svg .wline { fill: none; stroke: var(--ink); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  svg .warea { fill: url(#wfill); }
+  svg .wdot { fill: var(--ink); stroke: var(--surface); stroke-width: 2; }
+  svg .cross { stroke: #444; }
+  svg text.t-ink { fill: var(--ink); }
+  .legend { display: inline-flex; align-items: center; gap: 6px; }
+
+  /* Entry feed */
+  .feed { max-height: 236px; overflow-y: auto; overflow-x: hidden; margin: 0 -6px; padding: 0 6px; }
+  .meal { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .06em; padding: 12px 0 4px; }
+  .meal:first-child { padding-top: 0; }
+  .e { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto 24px; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
+  .e .t { color: var(--ink-3); }
+  .e .n { color: var(--ink); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .e .m { color: var(--ink-3); font-size: 12px; }
+  .x { width: 24px; height: 24px; border-radius: 50%; color: var(--ink-3); opacity: 0; }
+  .e:hover .x, .x:focus-visible { opacity: 1; }
+  .x:hover { color: var(--critical); background: var(--surface-2); }
+
+  /* Tables */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th { text-align: left; font-weight: 500; color: var(--ink-3); font-size: 11px; padding: 0 10px 8px 0; white-space: nowrap; }
+  td { padding: 9px 10px 9px 0; border-top: 1px solid var(--line); color: var(--ink-2); vertical-align: middle; }
+  td:first-child { color: var(--ink); }
+  td.r, th.r { text-align: right; }
+  .status { display: inline-flex; align-items: center; gap: 8px; }
+  .status i { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3); }
+  .status i.on { background: var(--good); }
+  .tag { font-size: 11px; border: 1px solid var(--line-2); border-radius: 6px; padding: 1px 6px; color: var(--ink-2); white-space: nowrap; }
+
+  code, pre { font-family: var(--mono); font-size: 12px; }
+  pre { background: var(--bg); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; color: var(--ink-2); margin: 0 0 16px; }
+  .token { background: var(--bg); border: 1px solid #555; border-radius: 14px; padding: 12px 14px; word-break: break-all; font-family: var(--mono); }
+  .connect h2 { margin-top: 4px; }
+  .connect p { color: var(--ink-2); margin: 0 0 12px; }
+
+  #tip { position: fixed; z-index: 50; pointer-events: none; background: #fff; color: #000; font-size: 12px; padding: 6px 10px; border-radius: 10px; opacity: 0; transition: opacity .08s; line-height: 1.4; white-space: pre-line; box-shadow: 0 8px 24px rgba(0,0,0,.5); max-width: 260px; }
+  #toast { position: fixed; z-index: 60; left: 50%; bottom: 24px; transform: translateX(-50%); background: #fff; color: #000; border-radius: 999px; padding: 8px 18px; font-size: 13px; box-shadow: 0 12px 40px rgba(0,0,0,.6); max-width: min(640px, 92vw); }
+  #toast.bad { background: var(--critical); color: #000; }
+
+  /* Narrow screens and touch screens. These come last so that they win over the rules above. */
+  @media (max-width: 1080px) { .c3, .c4, .c5 { grid-column: span 6; } .c7, .c8 { grid-column: span 12; } .cmd { width: 260px; } }
+  @media (max-width: 720px) {
+    .grid > * { grid-column: span 12; }
+    header { flex-wrap: wrap; gap: 10px; padding: 10px 14px; }
+    .brand-name, .who { display: none; }
+    .tabs button { padding: 5px 12px; }
+    /* Two rows: the logo and the tabs, then the search box and Sign out. */
+    header > .grow { order: 4; flex-basis: 100%; height: 0; }
+    .cmd { order: 5; flex: 1; width: auto; min-width: 0; }
+    .cmd-field kbd { display: none; }
+    #signout { order: 6; }
+    .card h2 .r.wrap { margin-left: 0; flex-basis: 100%; }
+    .card h2 { flex-wrap: wrap; }
+    .x { opacity: 1; }
+    .col-token { display: none; }
+    td { padding-right: 8px; }
+    .status { white-space: nowrap; }
+    /* The token table has too many columns for a phone, so each token is a block: the agent and
+       Revoke on top, then the token state, access, and last use. */
+    #agents-table tr:has(th) { display: none; }
+    #agents-table tr { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+    #agents-table td { display: block; border: 0; padding: 0; }
+    #agents-table td:nth-child(1) { grid-column: 1 / 4; grid-row: 1; }
+    #agents-table td:nth-child(2) { grid-column: 1; grid-row: 2; }
+    #agents-table td:nth-child(3) { grid-column: 2; grid-row: 2; }
+    #agents-table td:nth-child(4) { grid-column: 3; grid-row: 2; }
+    #agents-table td:nth-child(5) { grid-column: 4; grid-row: 1 / 3; }
+    td .btn { padding: 6px 10px; }
+    .pop { max-height: 60vh; }
+    main { padding: 14px 14px 40px; }
+    .filters h1 { font-size: 18px; margin-left: 4px; }
+    .card { padding: 16px; }
+    .hero .big { font-size: 48px; }
+    .feed { max-height: none; }
+    input.wide { min-width: 0; flex: 1 1 100%; }
+    /* iOS zooms in on an input with text under 16 px. */
+    input, select { font-size: 16px; }
+  }
+  /* Touch screens: no hover, so show the delete buttons and make the targets bigger. */
+  @media (hover: none) {
+    .x { opacity: 1; width: 32px; height: 32px; }
+    .e { grid-template-columns: 44px minmax(0, 1fr) auto 32px; }
+    .btn { padding: 8px 14px; }
+    .icon-btn { width: 36px; height: 36px; }
+    .seg button { padding: 8px 14px; }
+    .tabs button { padding: 7px 14px; }
+    .res { padding: 12px 10px; }
+  }
 </style>
 </head>
 <body>
-<div id="signin" class="card">
-  <h2>Sign in to __APP_NAME__</h2>
-  <p class="muted">Type the ADMIN_TOKEN from the deploy. To sign in with your email address, set OWNER_EMAIL and deploy again.</p>
-  <div class="row"><input id="admin-token" class="grow" type="password" autocomplete="current-password" placeholder="Admin token"><button class="primary" id="signin-btn">Sign in</button></div>
+<svg width="0" height="0" aria-hidden="true">
+  <symbol id="mark" viewBox="0 0 32 32"><path d="M16 2 28 9v14l-12 7-12-7V9z" fill="none" stroke="#fff" stroke-width="2"/><path d="M9 21 23 11" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></symbol>
+</svg>
+
+<div id="signin">
+  <div class="wordmark"><svg class="logo" width="42" height="42"><use href="#mark"/></svg>__APP_NAME__</div>
+  <div class="signin-box">
+    <input id="admin-token" type="password" autocomplete="current-password" placeholder="Admin token" aria-label="Admin token">
+    <button class="btn w" id="signin-btn">Sign in</button>
+  </div>
   <p class="error" id="signin-error"></p>
+  <p class="muted">Type the ADMIN_TOKEN from the deploy. To sign in with your email address, set OWNER_EMAIL and deploy again.</p>
 </div>
 
 <div id="app" hidden>
   <header>
-    <h1>__APP_NAME__</h1>
-    <nav>
-      <button data-view="today" aria-current="page">Today</button>
-      <button data-view="trends">Trends</button>
+    <div class="brand"><svg class="logo" width="22" height="22"><use href="#mark"/></svg><span class="brand-name">__APP_NAME__</span></div>
+    <nav class="tabs" aria-label="Views">
+      <button data-view="overview" aria-current="page">Overview</button>
       <button data-view="agents">Agents</button>
       <button data-view="connect">Connect</button>
     </nav>
     <span class="grow"></span>
-    <span class="muted" id="who"></span>
-    <button class="ghost" id="signout">Sign out</button>
+    <div class="cmd" id="cmd-wrap">
+      <div class="cmd-field">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+        <input id="cmd" placeholder="Search foods and recipes to log" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="cmd-pop" aria-label="Search foods and recipes to log">
+        <kbd>⌘K</kbd>
+      </div>
+      <div class="pop" id="cmd-pop" hidden></div>
+    </div>
+    <span class="who" id="who"></span>
+    <button class="btn" id="signout">Sign out</button>
   </header>
+
   <main>
-    <section id="view-today">
-      <div class="row mb"><input type="date" id="day"><span class="muted" id="tz"></span></div>
-      <div class="card"><div class="grid" id="day-stats"></div></div>
-      <div id="day-meals"></div>
-    </section>
-    <section id="view-trends" hidden>
-      <div class="card">
-        <div class="row mb"><label>Days <select id="trend-days"><option>7</option><option selected>14</option><option>30</option><option>90</option></select></label></div>
-        <div class="grid mb" id="trend-stats"></div>
-        <div class="table-wrap"><table id="trend-table"></table></div>
+    <section id="view-overview">
+      <div class="filters">
+        <button class="icon-btn" id="prev-day" aria-label="Day before">‹</button>
+        <button class="icon-btn" id="next-day" aria-label="Day after">›</button>
+        <h1 id="day-title"></h1>
+        <input type="date" id="day" aria-label="Day">
+        <div class="seg" role="group" aria-label="Period">
+          <button data-range="7" aria-pressed="false">7D</button><button data-range="14" aria-pressed="true">14D</button><button data-range="30" aria-pressed="false">30D</button><button data-range="90" aria-pressed="false">90D</button>
+        </div>
+        <span class="btn" id="tz"></span>
+      </div>
+
+      <div class="grid">
+        <section class="card c3 hero">
+          <h2 id="hero-label">Calories left</h2>
+          <div class="big num" id="hero-value">–</div>
+          <div class="sub" id="hero-sub"></div>
+          <div class="badge" id="hero-badge" hidden></div>
+        </section>
+
+        <section class="card c5">
+          <h2>Macros <span class="r" id="macro-note"></span></h2>
+          <div id="macros"></div>
+        </section>
+
+        <section class="card c4"><div class="stats" id="stats"></div></section>
+
+        <section class="card c8">
+          <h2>Calories per day <span class="r wrap"><span class="legend">- - goal</span> · <span class="legend">▲ over goal</span> · select a bar to open the day</span></h2>
+          <svg class="chart" id="cal" viewBox="0 0 760 220" role="img" aria-label="Calories per day"></svg>
+        </section>
+
+        <section class="card c4">
+          <h2><span id="entries-title">Today</span> <span class="r" id="entries-count"></span></h2>
+          <div class="feed" id="entries"></div>
+        </section>
+
+        <section class="card c7">
+          <h2>Weight <span class="r" id="wt-range"></span></h2>
+          <svg class="chart" id="wt" viewBox="0 0 640 190" role="img" aria-label="Body weight"></svg>
+        </section>
+
+        <section class="card c5">
+          <h2>Agents <span class="r"><button class="btn" data-goto="agents">Manage</button></span></h2>
+          <div class="table-wrap"><table id="agents-mini"></table></div>
+        </section>
       </div>
     </section>
+
     <section id="view-agents" hidden>
-      <div class="card">
-        <h2>New agent token</h2>
-        <div class="row">
-          <input id="agent-id" placeholder="agent ID, for example claude" pattern="[a-z0-9][a-z0-9-]*">
-          <select id="agent-scopes"><option value="read,write">read and write</option><option value="read">read only</option></select>
-          <select id="agent-expiry"><option value="">no expiry</option><option value="30">expires in 30 days</option><option value="90">expires in 90 days</option><option value="365">expires in 365 days</option></select>
-          <button class="primary" id="mint">Make token</button>
+      <div class="grid">
+        <div class="card c12">
+          <h2>New agent token</h2>
+          <div class="row">
+            <input id="agent-id" class="wide" placeholder="Agent ID, for example claude" pattern="[a-z0-9][a-z0-9-]*" aria-label="Agent ID">
+            <select id="agent-scopes" aria-label="Access"><option value="read,write">Read and write</option><option value="read">Read only</option></select>
+            <select id="agent-expiry" aria-label="Expiry"><option value="">No expiry</option><option value="30">Expires in 30 days</option><option value="90">Expires in 90 days</option><option value="365">Expires in 365 days</option></select>
+            <button class="btn w" id="mint">Make token</button>
+          </div>
+          <p class="error" id="mint-error"></p>
+          <div id="minted" hidden>
+            <p>Copy this token now. The console shows it one time only.</p>
+            <div class="row"><div class="token grow" id="minted-token"></div><button class="btn" id="copy-token">Copy</button></div>
+          </div>
         </div>
-        <p class="error" id="mint-error"></p>
-        <div id="minted" hidden>
-          <p>Copy this token now. The console shows it one time only.</p>
-          <div class="token" id="minted-token"></div>
-        </div>
+        <div class="card c12"><h2>Agents</h2><div class="table-wrap"><table id="agents-table"></table></div></div>
       </div>
-      <div class="card"><h2>Agents</h2><div class="table-wrap"><table id="agents-table"></table></div></div>
     </section>
+
     <section id="view-connect" hidden>
-      <div class="card">
+      <div class="card connect">
         <h2>Connect an agent</h2>
         <p>Make a token on the Agents page. Give the agent this MCP address. Give the agent the token as a bearer token.</p>
         <pre id="mcp-url"></pre>
@@ -113,23 +338,42 @@
         <h2>JSON configuration (Cursor, Claude Desktop with mcp-remote, and other clients)</h2>
         <pre id="snippet-json"></pre>
         <h2>REST</h2>
-        <p class="muted">Each MCP tool is also available at <code>POST /v1/tools/&lt;name&gt;</code> with a JSON body.</p>
+        <p>Each MCP tool is also available at <code>POST /v1/tools/&lt;name&gt;</code> with a JSON body.</p>
         <pre id="snippet-rest"></pre>
       </div>
     </section>
   </main>
 </div>
+<div id="tip" role="tooltip"></div>
+<div id="toast" role="status" hidden></div>
 
 <script nonce="__CSP_NONCE__">
 (() => {
   const $ = (id) => document.getElementById(id);
-  const NUTRIENTS = [["calories", "Calories", "kcal"], ["protein_g", "Protein", "g"], ["carbs_g", "Carbs", "g"], ["fat_g", "Fat", "g"], ["fiber_g", "Fiber", "g"], ["sugar_g", "Sugar", "g"], ["sodium_mg", "Sodium", "mg"]];
-  const LIMITS = new Set(["sugar_g", "sodium_mg"]);
+  const SVG = "http://www.w3.org/2000/svg";
+  const MACROS = [["protein_g", "Protein", "protein"], ["carbs_g", "Carbs", "carbs"], ["fat_g", "Fat", "fat"]];
+  const MEALS = ["breakfast", "lunch", "dinner", "snack", "other"];
+  const state = { day: "", today: "", tz: "UTC", range: 14 };
   let token = "";
   try { token = sessionStorage.getItem("pantry-admin") || ""; } catch {}
 
   const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
   const fmt = (v) => (v === null || v === undefined ? "–" : Number(v).toLocaleString(undefined, { maximumFractionDigits: 1 }));
+  // kcal and mg read as whole numbers.
+  const whole = (v) => (v === null || v === undefined ? "–" : fmt(Math.round(v)));
+  const cap = (s) => s[0].toUpperCase() + s.slice(1);
+  // Days are YYYY-MM-DD in the pantry time zone. Treat them as UTC days so the math has no DST.
+  const dayNum = (d) => Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10)) / 86400000;
+  const addDays = (d, n) => new Date((dayNum(d) + n) * 86400000).toISOString().slice(0, 10);
+  const dateLabel = (d, opts) => new Date(dayNum(d) * 86400000).toLocaleDateString(undefined, { timeZone: "UTC", ...opts });
+  const ago = (iso) => {
+    if (!iso) return "never";
+    const s = (Date.now() - Date.parse(iso)) / 1000;
+    if (s < 60) return "just now";
+    if (s < 3600) return `${Math.floor(s / 60)} min ago`;
+    if (s < 86400) return `${Math.floor(s / 3600)} h ago`;
+    return `${Math.floor(s / 86400)} d ago`;
+  };
 
   async function api(path, body, method) {
     const res = await fetch(path, {
@@ -145,6 +389,54 @@
     return json.data;
   }
   const tool = (name, args) => api(`/console/api/tools/${name}`, args || {});
+
+  let toastTimer;
+  function toast(text, bad) {
+    const el = $("toast");
+    el.textContent = text;
+    el.classList.toggle("bad", !!bad);
+    el.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => (el.hidden = true), bad ? 6000 : 3500);
+  }
+  const fail = (err) => toast(err.message, true);
+
+  // One tooltip for the page. A mark carries its text in data-tip: the first line is the heading.
+  const tip = $("tip");
+  const hideTip = () => (tip.style.opacity = 0);
+  const showTip = (e) => {
+    const el = e.target.closest?.("[data-tip]");
+    if (!el) return void hideTip();
+    const [head, ...rest] = el.getAttribute("data-tip").split("\n");
+    const b = document.createElement("b");
+    b.textContent = head;
+    tip.replaceChildren(b, ...(rest.length ? ["\n" + rest.join("\n")] : []));
+    tip.style.left = `${Math.max(8, Math.min(e.clientX + 14, innerWidth - tip.offsetWidth - 8))}px`;
+    tip.style.top = `${Math.max(8, e.clientY - tip.offsetHeight - 10)}px`;
+    tip.style.opacity = 1;
+  };
+  document.addEventListener("pointermove", showTip);
+  document.addEventListener("pointerdown", showTip);
+  addEventListener("scroll", hideTip, { passive: true });
+
+  // Inline style attributes are blocked by the CSP, so widths are set through the DOM.
+  const bars = (root) => root.querySelectorAll("[data-pct]").forEach((el) => (el.style.width = `${el.dataset.pct}%`));
+  const svgEl = (tag, attrs, parent) => {
+    const n = document.createElementNS(SVG, tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(n);
+    return n;
+  };
+  const svgText = (parent, x, y, text, attrs) => (svgEl("text", { x, y, ...attrs }, parent).textContent = text);
+  // A chart draws in its own pixels, so its text keeps one size from a phone to a wide screen.
+  const chartWidth = (svg, fallback) => Math.round(svg.getBoundingClientRect().width) || fallback;
+  const niceStep = (span) => {
+    const raw = span / 3;
+    const p = 10 ** Math.floor(Math.log10(raw));
+    return [1, 2, 2.5, 5, 10].find((m) => m * p >= raw) * p;
+  };
+
+  // ---------- sign-in ----------
 
   // "access" when Cloudflare Access signed the owner in; its own logout ends that session.
   let via = "";
@@ -174,60 +466,262 @@
     }
   }
 
-  function stat(label, value, unit, goal, key) {
-    let bar = "";
-    let sub = "";
-    if (goal !== null && goal !== undefined && goal > 0) {
-      const pct = Math.min(100, (100 * (value || 0)) / goal);
-      const over = LIMITS.has(key) ? (value || 0) > goal : key === "calories" && (value || 0) > goal * 1.05;
-      bar = `<div class="bar"><span class="${over ? "over" : ""}" data-pct="${pct}"></span></div>`;
-      sub = ` <span class="muted">/ ${fmt(goal)}</span>`;
-    }
-    return `<div class="stat"><div class="label">${label} (${unit})</div><div class="value">${fmt(value)}${sub}</div>${bar}</div>`;
-  }
+  // ---------- overview ----------
 
-  // Inline style attributes are blocked by the CSP, so bar widths are set through the DOM.
-  const bars = () => document.querySelectorAll("[data-pct]").forEach((el) => (el.style.width = `${el.dataset.pct}%`));
+  // The admin token has a limit of 30 requests a minute, so each control loads only what it changes:
+  // a day loads get_day, a period loads the trends and weights, and the tab loads all of them.
+  let trends = null, weights = null, dayData = null;
+
+  async function loadOverview() {
+    const [, , a] = await Promise.all([loadDay(), loadPeriod(), api("/console/api/admin/agents")]);
+    renderAgentsMini(a.agents);
+  }
 
   async function loadDay() {
-    const day = await tool("get_day", $("day").value ? { date: $("day").value } : {});
-    $("day").value = day.date;
-    $("tz").textContent = `Time zone: ${day.time_zone}`;
-    $("day-stats").innerHTML = NUTRIENTS.map(([k, l, u]) => stat(l, day.totals[k], u, day.goals?.[k], k)).join("");
-    $("day-meals").innerHTML = day.meals.length
-      ? day.meals.map((m) => `<div class="card"><h2>${esc(m.meal[0].toUpperCase() + m.meal.slice(1))} <span class="muted">· ${fmt(m.totals.calories)} kcal</span></h2>
-          <div class="table-wrap"><table><tr><th>Food</th><th class="num">Servings</th><th class="num">kcal</th><th class="num">P</th><th class="num">C</th><th class="num">F</th><th>By</th><th></th></tr>
-          ${m.entries.map((e) => `<tr><td>${esc(e.name)}${e.brand ? ` <span class="muted">${esc(e.brand)}</span>` : ""}${e.note ? `<div class="muted">${esc(e.note)}</div>` : ""}</td>
-            <td class="num">${fmt(e.servings)}</td><td class="num">${fmt(e.totals.calories)}</td><td class="num">${fmt(e.totals.protein_g)}</td>
-            <td class="num">${fmt(e.totals.carbs_g)}</td><td class="num">${fmt(e.totals.fat_g)}</td><td class="muted">${esc(e.agent_id)}</td>
-            <td><button class="ghost danger" data-delete-entry="${esc(e.id)}">Delete</button></td></tr>`).join("")}
-          </table></div></div>`).join("")
-      : `<div class="card muted">There are no entries for this day.</div>`;
-    bars();
+    const day = state.day;
+    $("day").value = day;
+    $("day").max = state.today;
+    $("next-day").disabled = day >= state.today;
+    $("day-title").textContent = day === state.today ? "Today" : dateLabel(day, { weekday: "long", month: "long", day: "numeric" });
+    const d = await tool("get_day", { date: day });
+    if (day !== state.day) return; // A newer load started.
+    dayData = d;
+    renderDay();
   }
 
-  async function loadTrends() {
-    const t = await tool("get_trends", { days: Number($("trend-days").value) });
-    const avg = t.average_per_logged_day || {};
-    $("trend-stats").innerHTML = `<div class="stat"><div class="label">Logged days</div><div class="value">${t.logged_days} <span class="muted">/ ${t.total_days}</span></div></div>` +
-      NUTRIENTS.slice(0, 4).map(([k, l, u]) => stat(`Avg ${l.toLowerCase()}`, avg[k], u, t.goals?.[k], k)).join("");
-    const max = Math.max(1, ...t.days.map((d) => d.totals?.calories || 0), t.goals?.calories || 0);
-    $("trend-table").innerHTML = `<tr><th>Day</th><th>Calories</th><th class="num">kcal</th><th class="num">P</th><th class="num">C</th><th class="num">F</th></tr>` +
-      t.days.slice().reverse().map((d) => `<tr><td>${esc(d.date)}</td><td class="wide"><div class="bar"><span data-pct="${(100 * (d.totals?.calories || 0)) / max}"></span></div></td>
-        <td class="num">${fmt(d.totals?.calories)}</td><td class="num">${fmt(d.totals?.protein_g)}</td><td class="num">${fmt(d.totals?.carbs_g)}</td><td class="num">${fmt(d.totals?.fat_g)}</td></tr>`).join("");
-    bars();
+  async function loadPeriod() {
+    const range = state.range;
+    document.querySelectorAll("[data-range]").forEach((b) => b.setAttribute("aria-pressed", String(+b.dataset.range === range)));
+    const [t, w] = await Promise.all([tool("get_trends", { days: range }), tool("get_weights", { days: Math.max(range, 30) })]);
+    if (range !== state.range) return;
+    trends = t;
+    weights = w;
+    renderCalories(t);
+    renderWeight(w);
+    renderDay();
   }
+
+  function renderDay() {
+    if (!dayData || !trends) return;
+    renderHero(dayData, trends);
+    renderMacros(dayData);
+    renderStats(dayData, trends, weights);
+    renderEntries(dayData);
+    renderCalories(trends);
+  }
+
+  // After a log or a delete: the day and the period both change.
+  const refresh = () => Promise.all([loadDay(), loadPeriod()]);
+
+  function renderHero(d, t) {
+    const kcal = d.totals.calories || 0;
+    const goal = d.goals?.calories;
+    const big = $("hero-value");
+    const when = d.date === state.today ? "today" : "this day";
+    big.classList.remove("over");
+    if (goal) {
+      const left = goal - kcal;
+      $("hero-label").textContent = left >= 0 ? `Calories left ${when}` : `Calories over goal ${when}`;
+      big.textContent = fmt(Math.abs(Math.round(left)));
+      big.classList.toggle("over", left < 0);
+      $("hero-sub").textContent = `${whole(kcal)} of ${whole(goal)} kcal eaten`;
+    } else {
+      $("hero-label").textContent = `Calories eaten ${when}`;
+      big.textContent = whole(kcal);
+      $("hero-sub").textContent = "There is no calorie goal. Ask an agent to set one.";
+    }
+    const gap = t.average_vs_goal?.calories;
+    $("hero-badge").hidden = gap === undefined;
+    if (gap !== undefined) $("hero-badge").textContent = `${gap > 0 ? "▲" : "▼"} ${state.range}-day average ${fmt(Math.abs(Math.round(gap)))} kcal ${gap > 0 ? "over" : "under"} goal`;
+  }
+
+  function renderMacros(d) {
+    $("macro-note").textContent = !d.goals ? "no goals set" : d.date === state.today ? "today's goals" : "goals on this day";
+    $("macros").innerHTML = MACROS.map(([k, label, cls]) => {
+      const v = d.totals[k] || 0;
+      const g = d.goals?.[k];
+      const pct = g ? Math.min(100, (100 * v) / g) : 0;
+      const right = g ? `<em>${fmt(v)}</em> / ${fmt(g)} g · ${v <= g ? `${fmt(g - v)} g left` : `${fmt(v - g)} g over`}` : `<em>${fmt(v)}</em> g`;
+      const tipText = g ? `${label}\n${fmt(v)} of ${fmt(g)} g · ${Math.round((100 * v) / g)}%` : `${label}\n${fmt(v)} g · no goal`;
+      return `<div class="macro"><div class="row"><i class="sw ${cls}"></i><b>${label}</b><span class="v num">${right}</span></div>
+        <div class="track" data-tip="${esc(tipText)}"><i class="${cls}" data-pct="${pct}"></i></div></div>`;
+    }).join("");
+    bars($("macros"));
+  }
+
+  function renderStats(d, t, w) {
+    const stat = (k, v, unit, sub, over) => `<div class="stat"><div class="k">${k}</div><div class="v num">${v}${unit ? `<small> ${unit}</small>` : ""}</div><div class="d${over ? " over" : ""}">${sub}</div></div>`;
+    const change = w.change_kg;
+    const weight = w.last
+      ? stat("Weight", fmt(w.last.weight_kg), "kg", change === null || w.count < 2 ? `on ${dateLabel(w.last.date, { month: "short", day: "numeric" })}` : `${change > 0 ? "+" : change < 0 ? "−" : "±"}${fmt(Math.abs(change))} kg in ${Math.max(state.range, 30)} days`)
+      : stat("Weight", "–", "", "No weigh-ins");
+    const avg = t.average_per_logged_day?.calories;
+    const average = stat(`${state.range}-day average`, avg === undefined || avg === null ? "–" : fmt(Math.round(avg)), "kcal", `${t.logged_days} of ${t.total_days} days logged`);
+    const fv = d.totals.fiber_g, fg = d.goals?.fiber_g;
+    const fiber = stat("Fiber", fmt(fv ?? 0), fg ? `/ ${fmt(fg)} g` : "g", fg ? ((fv || 0) <= fg ? `${fmt(fg - (fv || 0))} g left` : "Goal met") : "No goal");
+    // Sodium and sugar goals are limits, so going over is the bad side.
+    const sv = d.totals.sodium_mg || 0, sg = d.goals?.sodium_mg;
+    const sodium = stat("Sodium", whole(sv), "mg", sg ? (sv <= sg ? `${whole(sg - sv)} mg under limit` : `${whole(sv - sg)} mg over limit`) : "No limit set", sg && sv > sg);
+    $("stats").innerHTML = weight + average + fiber + sodium;
+  }
+
+  function renderCalories(t) {
+    const svg = $("cal");
+    svg.replaceChildren();
+    const W = chartWidth(svg, 760), H = 220, L = 40, R = 8, T = 18, B = 26;
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    const goal = t.goals?.calories ?? null;
+    const vals = t.days.map((d) => d.totals?.calories ?? null);
+    const step = niceStep(Math.max(1, goal || 0, ...vals.map((v) => v || 0)) * 1.1);
+    const max = Math.ceil((Math.max(1, goal || 0, ...vals.map((v) => v || 0)) * 1.1) / step) * step;
+    const y = (v) => T + (H - T - B) * (1 - v / max);
+    for (let v = 0; v <= max + 1e-9; v += step) {
+      svgEl("line", { class: "grid-line", x1: L, x2: W - R, y1: y(v), y2: y(v) }, svg);
+      svgText(svg, L - 8, y(v) + 4, v >= 1000 ? `${+(v / 1000).toFixed(1)}k` : String(v), { "text-anchor": "end" });
+    }
+    const n = t.days.length;
+    const slot = (W - L - R) / n;
+    const bw = Math.max(2, Math.min(44, slot * 0.72));
+    const radius = bw >= 10 ? 4 : Math.min(2, bw / 2);
+    const every = Math.ceil(n / Math.max(3, Math.min(7, Math.floor((W - L - R) / 72))));
+    t.days.forEach((d, i) => {
+      const x = L + i * slot + (slot - bw) / 2;
+      const v = vals[i];
+      if ((n - 1 - i) % every === 0) svgText(svg, x + bw / 2, H - 8, d.date === state.today ? "Today" : dateLabel(d.date, { month: "short", day: "numeric" }), { "text-anchor": "middle" });
+      const over = goal !== null && v !== null && v > goal;
+      if (v) {
+        // Rounded at the top, square at the baseline.
+        const y0 = y(0), yt = y(v), r = Math.min(radius, y0 - yt);
+        svgEl("path", { class: `bar${over ? " over" : d.date === state.day ? " sel" : ""}`, d: `M${x},${y0}V${yt + r}Q${x},${yt} ${x + r},${yt}H${x + bw - r}Q${x + bw},${yt} ${x + bw},${yt + r}V${y0}Z` }, svg);
+        if (over && bw >= 18) svgText(svg, x + bw / 2, yt - 6, "▲ over", { class: "t-over", "text-anchor": "middle" });
+      }
+      const label = dateLabel(d.date, { weekday: "short", month: "short", day: "numeric" });
+      const detail = v === null ? "Nothing logged" : `${whole(v)} kcal${goal ? ` · ${v > goal ? "+" : "−"}${whole(Math.abs(v - goal))} vs goal` : ""}`;
+      svgEl("rect", { class: "hit", x: L + i * slot, y: T, width: slot, height: H - T - B, "data-date": d.date, "data-tip": `${label}\n${detail}`, "aria-label": `${label}: ${detail}` }, svg);
+    });
+    if (goal) {
+      svgEl("line", { class: "goal", x1: L, x2: W - R, y1: y(goal), y2: y(goal) }, svg);
+      svgText(svg, W - R, y(goal) - 6, `Goal ${fmt(goal)}`, { class: "t-goal", "text-anchor": "end" });
+    }
+  }
+
+  function renderEntries(d) {
+    $("entries-title").textContent = d.date === state.today ? "Today" : dateLabel(d.date, { weekday: "short", month: "short", day: "numeric" });
+    $("entries-count").textContent = `${d.entry_count} ${d.entry_count === 1 ? "entry" : "entries"}`;
+    const time = (e) => (e.consumed_at ? new Date(e.consumed_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: state.tz }) : "–");
+    const amount = (e) => (e.grams !== null ? `${fmt(e.grams)} g` : e.serving_unit ? `${fmt(e.servings)} × ${fmt(e.serving_size)} ${e.serving_unit}` : `${fmt(e.servings)} serving${e.servings === 1 ? "" : "s"}`);
+    $("entries").innerHTML = d.meals.length
+      ? d.meals.map((m) => `<div class="meal"><span>${esc(cap(m.meal))}</span><span class="num">${whole(m.totals.calories)} kcal</span></div>` +
+          m.entries.map((e) => `<div class="e">
+            <span class="t num">${esc(time(e))}</span>
+            <span><span class="n">${esc(e.name)}${e.brand ? ` <span class="m">${esc(e.brand)}</span>` : ""}</span><span class="m">${esc(amount(e))} · ${esc(e.agent_id)}${e.note ? ` · ${esc(e.note)}` : ""}</span></span>
+            <span class="num" data-tip="${esc(`${e.name}\nP ${fmt(e.totals.protein_g)} g · C ${fmt(e.totals.carbs_g)} g · F ${fmt(e.totals.fat_g)} g`)}">${whole(e.totals.calories)}</span>
+            <button class="x" data-delete-entry="${esc(e.id)}" aria-label="Delete ${esc(e.name)}">×</button></div>`).join("")).join("")
+      : `<div class="empty">There are no entries for this day. Search a food above to log it.</div>`;
+  }
+
+  function renderWeight(w) {
+    const svg = $("wt");
+    svg.replaceChildren();
+    $("wt-range").textContent = `${dateLabel(w.from, { month: "short", day: "numeric" })} – ${dateLabel(w.to, { month: "short", day: "numeric" })}`;
+    const W = chartWidth(svg, 640), H = 190, L = 36, R = 12, T = 14, B = 26;
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    if (!w.weights.length) {
+      svgText(svg, W / 2, H / 2, "There are no weigh-ins in this period.", { "text-anchor": "middle" });
+      return;
+    }
+    const kgs = w.weights.map((p) => p.weight_kg);
+    const pad = Math.max(0.3, (Math.max(...kgs) - Math.min(...kgs)) * 0.15);
+    const step = niceStep(Math.max(...kgs) - Math.min(...kgs) + 2 * pad);
+    const lo = Math.floor((Math.min(...kgs) - pad) / step) * step;
+    const hi = Math.ceil((Math.max(...kgs) + pad) / step) * step;
+    const from = dayNum(w.from), span = Math.max(1, dayNum(w.to) - from);
+    const x = (date) => L + (W - L - R) * ((dayNum(date) - from) / span);
+    const y = (v) => T + (H - T - B) * (1 - (v - lo) / (hi - lo));
+    for (let v = lo; v <= hi + 1e-9; v += step) {
+      svgEl("line", { class: "grid-line", x1: L, x2: W - R, y1: y(v), y2: y(v) }, svg);
+      svgText(svg, L - 8, y(v) + 4, String(+v.toFixed(1)), { "text-anchor": "end" });
+    }
+    svgText(svg, L, H - 8, dateLabel(w.from, { month: "short", day: "numeric" }));
+    svgText(svg, W - R, H - 8, dateLabel(w.to, { month: "short", day: "numeric" }), { "text-anchor": "end" });
+    const defs = svgEl("defs", {}, svg);
+    const grad = svgEl("linearGradient", { id: "wfill", x1: 0, x2: 0, y1: 0, y2: 1 }, defs);
+    svgEl("stop", { offset: 0, "stop-color": "#fff", "stop-opacity": 0.12 }, grad);
+    svgEl("stop", { offset: 1, "stop-color": "#fff", "stop-opacity": 0 }, grad);
+    const pts = w.weights.map((p) => [x(p.date), y(p.weight_kg)]);
+    const line = pts.map(([px, py], i) => `${i ? "L" : "M"}${px.toFixed(1)},${py.toFixed(1)}`).join("");
+    svgEl("path", { class: "warea", d: `${line}L${pts[pts.length - 1][0]},${y(lo)}L${pts[0][0]},${y(lo)}Z` }, svg);
+    svgEl("path", { class: "wline", d: line }, svg);
+    const last = w.weights[w.weights.length - 1];
+    const [lx, ly] = pts[pts.length - 1];
+    svgEl("circle", { class: "wdot", cx: lx, cy: ly, r: 4 }, svg);
+    // Put the label on the side away from the line that comes in to the last point.
+    const fromAbove = pts.length > 1 && pts[pts.length - 2][1] < ly;
+    svgText(svg, lx - 8, Math.min(H - B - 4, Math.max(T + 10, ly + (fromAbove ? 20 : -12))), `${fmt(last.weight_kg)} kg`, { class: "t-ink", "text-anchor": "end" });
+    // Crosshair: the hover snaps to the nearest weigh-in.
+    const cross = svgEl("line", { class: "cross", y1: T, y2: H - B, visibility: "hidden" }, svg);
+    const dot = svgEl("circle", { class: "wdot", r: 4, visibility: "hidden" }, svg);
+    const hit = svgEl("rect", { class: "hit", x: L, y: T, width: W - L - R, height: H - T - B }, svg);
+    const crosshair = (e) => {
+      const box = svg.getBoundingClientRect();
+      const mx = ((e.clientX - box.left) * W) / box.width;
+      let i = 0;
+      pts.forEach(([px], j) => { if (Math.abs(px - mx) < Math.abs(pts[i][0] - mx)) i = j; });
+      const p = w.weights[i];
+      for (const [k, v] of [["x1", pts[i][0]], ["x2", pts[i][0]]]) cross.setAttribute(k, v);
+      dot.setAttribute("cx", pts[i][0]);
+      dot.setAttribute("cy", pts[i][1]);
+      cross.setAttribute("visibility", "visible");
+      dot.setAttribute("visibility", "visible");
+      hit.setAttribute("data-tip", `${dateLabel(p.date, { weekday: "short", month: "short", day: "numeric" })}\n${fmt(p.weight_kg)} kg · ${fmt(p.weight_lb)} lb${p.body_fat_pct ? ` · ${fmt(p.body_fat_pct)}% fat` : ""}`);
+    };
+    hit.addEventListener("pointermove", crosshair);
+    hit.addEventListener("pointerdown", crosshair);
+    hit.addEventListener("pointerleave", () => {
+      cross.setAttribute("visibility", "hidden");
+      dot.setAttribute("visibility", "hidden");
+    });
+  }
+
+  const activeToken = (t) => !t.revoked_at && (!t.expires_at || Date.parse(t.expires_at) > Date.now());
+  const lastUsed = (a) => a.tokens.map((t) => t.last_used_at).filter(Boolean).sort().pop() || null;
+
+  function renderAgentsMini(agents) {
+    const rows = agents.slice().sort((a, b) => (lastUsed(b) || "").localeCompare(lastUsed(a) || "")).slice(0, 6);
+    $("agents-mini").innerHTML = rows.length
+      ? `<tr><th>Agent</th><th>Access</th><th class="r">Last used</th></tr>` + rows.map((a) => {
+          const live = !a.disabled_at && a.tokens.some(activeToken);
+          const tok = a.tokens.filter(activeToken).pop();
+          return `<tr><td><span class="status"><i class="${live ? "on" : ""}"></i>${esc(a.id)}</span></td>
+            <td>${live ? `<span class="tag">${esc(tok.scopes.join(" + "))}</span>` : `<span class="muted">${a.disabled_at ? "disabled" : "no active token"}</span>`}</td>
+            <td class="r">${esc(ago(lastUsed(a)))}</td></tr>`;
+        }).join("")
+      : `<tr><td class="empty">There are no agents. Make a token on the Agents page.</td></tr>`;
+  }
+
+  let resizeTimer, lastWidth = innerWidth;
+  addEventListener("resize", () => {
+    if (innerWidth === lastWidth) return; // A phone fires resize when its toolbar hides.
+    lastWidth = innerWidth;
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      if (trends) renderCalories(trends);
+      if (weights) renderWeight(weights);
+    }, 150);
+  });
+
+  // ---------- agents and connect ----------
 
   async function loadAgents() {
     const { agents } = await api("/console/api/admin/agents");
     $("agents-table").innerHTML = agents.length
-      ? `<tr><th>Agent</th><th>Token</th><th>Scopes</th><th>Last used</th><th></th></tr>` +
+      ? `<tr><th>Agent</th><th>Token</th><th>Access</th><th>Last used</th><th></th></tr>` +
         agents.flatMap((a) => (a.tokens.length ? a.tokens : [null]).map((t, i) => `<tr>
-          <td>${i ? "" : `${esc(a.id)}${a.disabled_at ? ' <span class="muted">(disabled)</span>' : ""}`}</td>
-          <td>${t ? `<code>${esc(t.id.slice(-8))}</code>${t.revoked_at ? ' <span class="muted">revoked</span>' : t.expires_at ? ` <span class="muted">expires ${esc(t.expires_at.slice(0, 10))}</span>` : ""}` : "–"}</td>
-          <td>${t ? esc(t.scopes.join(", ")) : ""}</td><td class="muted">${t?.last_used_at ? esc(t.last_used_at.slice(0, 16).replace("T", " ")) : "never"}</td>
-          <td>${t && !t.revoked_at ? `<button class="ghost danger" data-revoke="${esc(t.id)}">Revoke</button>` : ""}</td></tr>`)).join("")
-      : `<tr><td class="muted">There are no agents. Make a token above.</td></tr>`;
+          <td>${i ? "" : `<span class="status"><i class="${!a.disabled_at && a.tokens.some(activeToken) ? "on" : ""}"></i>${esc(a.id)}</span>${a.disabled_at ? ' <span class="muted">disabled</span>' : ""}`}</td>
+          <td>${t ? `<code class="col-token">${esc(t.id.slice(-8))}</code>${t.revoked_at ? ' <span class="muted">revoked</span>' : t.expires_at ? ` <span class="muted">expires ${esc(t.expires_at.slice(0, 10))}</span>` : ' <span class="muted col-token">active</span>'}` : "–"}</td>
+          <td>${t ? `<span class="tag">${esc(t.scopes.join(" + "))}</span>` : ""}</td><td>${t ? esc(ago(t.last_used_at)) : ""}</td>
+          <td class="r">${t && !t.revoked_at ? `<button class="btn danger" data-revoke="${esc(t.id)}">Revoke</button>` : ""}</td></tr>`)).join("")
+      : `<tr><td class="empty">There are no agents. Make a token above.</td></tr>`;
   }
 
   function loadConnect() {
@@ -238,28 +732,164 @@
     $("snippet-rest").textContent = `curl -X POST ${location.origin}/v1/tools/log_food \\\n  -H "authorization: Bearer <agent token>" -H "content-type: application/json" \\\n  -d '{"name":"Banana","calories":105,"protein_g":1.3,"carbs_g":27,"fat_g":0.4}'`;
   }
 
-  const loaders = { today: loadDay, trends: loadTrends, agents: loadAgents, connect: loadConnect };
+  const loaders = { overview: loadOverview, agents: loadAgents, connect: loadConnect };
   function show(view) {
-    document.querySelectorAll("nav button").forEach((b) => b.setAttribute("aria-current", b.dataset.view === view ? "page" : "false"));
-    document.querySelectorAll("main section").forEach((s) => (s.hidden = s.id !== `view-${view}`));
-    Promise.resolve(loaders[view]()).catch((err) => alert(err.message));
+    tip.style.opacity = 0;
+    document.querySelectorAll(".tabs button").forEach((b) => b.setAttribute("aria-current", b.dataset.view === view ? "page" : "false"));
+    document.querySelectorAll("main > section").forEach((s) => (s.hidden = s.id !== `view-${view}`));
+    Promise.resolve(loaders[view]()).catch(fail);
+  }
+
+  function openDay(day) {
+    state.day = day > state.today ? state.today : day;
+    loadDay().catch(fail);
   }
 
   function start(me) {
     via = me.signed_in_with;
+    state.today = me.today;
+    state.day = me.today;
+    state.tz = me.time_zone;
+    $("tz").textContent = me.time_zone;
     $("who").textContent = me.email || "";
     $("signin").hidden = true;
     $("app").hidden = false;
-    $("day").value = me.today;
-    show("today");
+    show("overview");
   }
+
+  // ---------- command box: search the library, then log ----------
+
+  const cmd = $("cmd"), pop = $("cmd-pop");
+  let results = [], shownQuery = null, picked = -1, searchSeq = 0, searchTimer;
+
+  function closePop() {
+    pop.hidden = true;
+    cmd.setAttribute("aria-expanded", "false");
+  }
+  function openPop(html) {
+    pop.innerHTML = html;
+    pop.hidden = false;
+    cmd.setAttribute("aria-expanded", "true");
+  }
+
+  async function search() {
+    clearTimeout(searchTimer);
+    const seq = ++searchSeq;
+    const query = cmd.value.trim();
+    try {
+      const { foods } = await tool("search_foods", { ...(query ? { query } : {}), limit: 8 });
+      if (seq !== searchSeq || document.activeElement !== cmd) return;
+      results = foods;
+      shownQuery = query;
+      picked = foods.length ? 0 : -1;
+      renderResults(query);
+    } catch (err) {
+      fail(err);
+    }
+  }
+
+  function renderResults(query) {
+    const serving = (f) => `${fmt(f.serving_size)} ${f.serving_unit}${f.serving_grams && f.serving_unit !== "g" ? ` (${fmt(f.serving_grams)} g)` : ""}`;
+    openPop(`<div class="hd">${query ? "Foods and recipes" : "Logged most"}</div>` + (results.length
+      ? results.map((f, i) => `<button class="res${i === picked ? " on" : ""}" data-pick="${i}" role="option" aria-selected="${i === picked}">
+          <span class="nm">${esc(f.name)}${f.brand ? ` <span class="muted">${esc(f.brand)}</span>` : ""}</span>
+          ${f.is_recipe ? '<span class="tag">Recipe</span>' : ""}<span class="kc num">${whole(f.per_serving.calories)} kcal / ${esc(serving(f))}</span></button>`).join("")
+      : `<div class="empty">${query ? "No saved food matches. Agents save foods with save_food." : "The food library is empty."}</div>`));
+  }
+
+  function pick(i) {
+    const f = results[i];
+    if (!f) return;
+    const byGrams = f.is_recipe && f.serving_grams;
+    const today = state.day === state.today;
+    openPop(`<div class="logf">
+      <div class="head"><b>${esc(f.name)}</b>${f.brand ? `<span class="muted">${esc(f.brand)}</span>` : ""}${f.is_recipe ? '<span class="tag">Recipe</span>' : ""}<span class="grow"></span><button class="btn" id="lf-back">Back</button></div>
+      <div class="muted">One serving is ${fmt(f.serving_size)} ${esc(f.serving_unit)}${f.serving_grams && f.serving_unit !== "g" ? ` (${fmt(f.serving_grams)} g)` : ""}: ${fmt(f.per_serving.calories)} kcal, P ${fmt(f.per_serving.protein_g)} g, C ${fmt(f.per_serving.carbs_g)} g, F ${fmt(f.per_serving.fat_g)} g</div>
+      <div class="row">
+        <input id="lf-amt" type="number" min="0" step="any" value="${byGrams ? Math.round(f.serving_grams) : 1}" aria-label="Amount">
+        <select id="lf-unit" aria-label="Unit"><option value="servings">servings</option>${f.serving_grams ? `<option value="grams"${byGrams ? " selected" : ""}>g</option>` : ""}</select>
+        <select id="lf-meal" aria-label="Meal"><option value="">${today ? "Meal from the time" : "Other"}</option>${MEALS.filter((m) => today || m !== "other").map((m) => `<option value="${m}">${cap(m)}</option>`).join("")}</select>
+        <span class="grow"></span>
+        <button class="btn w" id="lf-log">Log${today ? "" : ` to ${esc(dateLabel(state.day, { month: "short", day: "numeric" }))}`}</button>
+      </div>
+      <div class="total" id="lf-total"></div>
+      <p class="error" id="lf-err"></p>
+    </div>`);
+    const update = () => {
+      const amt = Number($("lf-amt").value) || 0;
+      const servings = $("lf-unit").value === "grams" ? amt / f.serving_grams : amt;
+      $("lf-total").innerHTML = `Logs <em class="num">${fmt(Math.round(servings * f.per_serving.calories))} kcal</em> · P ${fmt(Math.round(servings * f.per_serving.protein_g))} g · C ${fmt(Math.round(servings * f.per_serving.carbs_g))} g · F ${fmt(Math.round(servings * f.per_serving.fat_g))} g`;
+    };
+    $("lf-amt").addEventListener("input", update);
+    $("lf-unit").addEventListener("change", update);
+    $("lf-amt").addEventListener("keydown", (e) => e.key === "Enter" && $("lf-log").click());
+    $("lf-back").addEventListener("click", () => { cmd.focus(); renderResults(cmd.value.trim()); });
+    $("lf-log").addEventListener("click", async () => {
+      const amt = Number($("lf-amt").value);
+      if (!(amt > 0)) return void ($("lf-err").textContent = "Type an amount more than 0.");
+      const body = { food_id: f.id, [$("lf-unit").value]: amt, ...($("lf-meal").value ? { meal: $("lf-meal").value } : {}), ...(today ? {} : { date: state.day }) };
+      try {
+        const out = await tool("log_food", body);
+        closePop();
+        cmd.value = "";
+        toast(out.warnings?.[0] || `Logged ${out.entry.name} · ${whole(out.entry.totals.calories)} kcal to ${out.entry.meal}`, !!out.warnings);
+        await refresh();
+      } catch (err) {
+        $("lf-err").textContent = err.message;
+      }
+    });
+    update();
+    $("lf-amt").focus();
+    $("lf-amt").select();
+  }
+
+  cmd.addEventListener("focus", search);
+  cmd.addEventListener("input", () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(search, 350);
+  });
+  cmd.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") return void (closePop(), cmd.blur());
+    // Enter before the results for the typed words arrive: search now, then take the first match.
+    if (e.key === "Enter" && cmd.value.trim() !== shownQuery) {
+      e.preventDefault();
+      search().then(() => results.length && cmd.value.trim() === shownQuery && pick(0));
+      return;
+    }
+    if (pop.hidden || !results.length) return;
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      picked = (picked + (e.key === "ArrowDown" ? 1 : results.length - 1)) % results.length;
+      renderResults(cmd.value.trim());
+    } else if (e.key === "Enter" && picked >= 0) {
+      e.preventDefault();
+      pick(picked);
+    }
+  });
+  pop.addEventListener("keydown", (e) => e.key === "Escape" && (closePop(), cmd.focus()));
+  document.addEventListener("keydown", (e) => {
+    const typing = /^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement?.tagName || "");
+    if (((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") || (e.key === "/" && !typing)) {
+      if ($("app").hidden) return;
+      e.preventDefault();
+      cmd.focus();
+    }
+  });
+  document.addEventListener("mousedown", (e) => !$("cmd-wrap").contains(e.target) && closePop());
+
+  // ---------- events ----------
 
   $("signin-btn").addEventListener("click", signIn);
   $("admin-token").addEventListener("keydown", (e) => e.key === "Enter" && signIn());
   $("signout").addEventListener("click", signOut);
-  document.querySelectorAll("nav button").forEach((b) => b.addEventListener("click", () => show(b.dataset.view)));
-  $("day").addEventListener("change", () => loadDay().catch((err) => alert(err.message)));
-  $("trend-days").addEventListener("change", () => loadTrends().catch((err) => alert(err.message)));
+  document.querySelectorAll(".tabs button").forEach((b) => b.addEventListener("click", () => show(b.dataset.view)));
+  $("day").addEventListener("change", () => $("day").value && openDay($("day").value));
+  $("prev-day").addEventListener("click", () => openDay(addDays(state.day, -1)));
+  $("next-day").addEventListener("click", () => openDay(addDays(state.day, 1)));
+  document.querySelectorAll("[data-range]").forEach((b) => b.addEventListener("click", () => {
+    state.range = Number(b.dataset.range);
+    loadPeriod().catch(fail);
+  }));
   $("mint").addEventListener("click", async () => {
     $("mint-error").textContent = "";
     try {
@@ -271,7 +901,14 @@
       $("mint-error").textContent = err.message;
     }
   });
+  $("copy-token").addEventListener("click", () => navigator.clipboard.writeText($("minted-token").textContent).then(() => toast("Token copied"), fail));
   document.addEventListener("click", async (e) => {
+    const pickBtn = e.target.closest("[data-pick]");
+    if (pickBtn) return pick(Number(pickBtn.dataset.pick));
+    const bar = e.target.closest("[data-date]");
+    if (bar) return openDay(bar.getAttribute("data-date"));
+    const go = e.target.closest("[data-goto]");
+    if (go) return show(go.dataset.goto);
     const target = e.target.closest("[data-revoke], [data-delete-entry]");
     if (!target) return;
     try {
@@ -281,10 +918,10 @@
       }
       if (target.dataset.deleteEntry && confirm("Delete this entry?")) {
         await tool("delete_entry", { id: target.dataset.deleteEntry });
-        await loadDay();
+        await refresh();
       }
     } catch (err) {
-      alert(err.message);
+      fail(err);
     }
   });
 

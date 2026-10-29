@@ -4,7 +4,7 @@ Each request must have the header `Authorization: Bearer <token>`. These request
 
 `ADMIN_TOKEN` operates only on the console API (`/console/api/`) and on `/v1/admin`. On `/mcp` and `/v1/tools`, it receives 403. Give each agent its own agent token.
 
-Each IP address can try `ADMIN_TOKEN` a maximum of 30 times in one minute. More tries receive 429. Agent tokens do not have this limit.
+Each IP address can try `ADMIN_TOKEN` a maximum of 120 times in one minute. More tries receive 429. Agent tokens do not have this limit.
 
 The maximum size of a request body is 64 KB. This limit applies to `/mcp`, `/v1`, and the console API. A larger body receives 400 with the code `invalid`.
 

@@ -32,9 +32,9 @@ describe("auth", () => {
     const agent = await mint("claude");
     const headers = { "cf-connecting-ip": "192.0.2.7" };
     const statuses: number[] = [];
-    for (let i = 0; i < 31; i++) statuses.push((await rest("/v1/admin/agents", `wrong-guess-${i}`, { headers })).status);
-    expect(statuses.slice(0, 30).every((s) => s === 401)).toBe(true);
-    expect(statuses[30]).toBe(429);
+    for (let i = 0; i < 121; i++) statuses.push((await rest("/v1/admin/agents", `wrong-guess-${i}`, { headers })).status);
+    expect(statuses.slice(0, 120).every((s) => s === 401)).toBe(true);
+    expect(statuses[120]).toBe(429);
     expect((await rest("/v1/admin/agents", ADMIN, { headers })).status).toBe(429);
     expect((await rest("/v1/tools/whoami", agent, { method: "POST", body: "{}", headers })).status).toBe(200);
   });

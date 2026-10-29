@@ -22,7 +22,7 @@
   "secrets": { "required": ["ADMIN_TOKEN"] },
   // Limits ADMIN_TOKEN tries per IP. The namespace id is a number of our choice, not a resource
   // id, so a deploy needs nothing made first.
-  "ratelimits": [{ "name": "AUTH_LIMITER", "namespace_id": "1001", "simple": { "limit": 30, "period": 60 } }],
+  "ratelimits": [{ "name": "AUTH_LIMITER", "namespace_id": "1001", "simple": { "limit": 120, "period": 60 } }],
   "d1_databases": [
     {
       "binding": "DB",
