@@ -77,19 +77,38 @@ If the token does not have these permissions, the deploy shows a warning and con
 
 Your copy does not receive updates from this repository automatically. An update runs code from this repository with your data. Thus, you must decide to accept updates.
 
-To receive updates, do these steps:
+Deploy to Cloudflare makes your copy with one new commit. That commit does not have the history of this repository or the `.github` folder. It also writes the worker name and the `database_id` into `wrangler.jsonc`. Thus, to receive updates, you must first connect your copy to this repository one time. Do these steps on your computer. Replace `<you>/<copy>` with the name of your copy:
+
+```sh
+git clone https://github.com/<you>/<copy>.git && cd <copy>
+git remote add upstream https://github.com/jordanbardwell/hivepantry.git
+git fetch upstream
+cp wrangler.jsonc /tmp/copy-wrangler.jsonc
+git reset --hard upstream/main
+```
+
+Then, in `wrangler.jsonc`, set `name` and `d1_databases[0].database_id` to the values in `/tmp/copy-wrangler.jsonc`. Do not change other lines. Then push:
+
+```sh
+git commit -am "Keep the worker name and database of this copy"
+git push --force origin main
+```
+
+**CAUTION:** If the name or the `database_id` is incorrect, the deploy makes a new worker or a new empty database. Your data stays in the old database.
+
+Then do these steps:
 
 1. In your GitHub copy, go to **Settings**, then to **Secrets and variables**, then to **Actions**.
 2. On the **Variables** tab, add the repository variable `SYNC_UPSTREAM` with the value `true`.
 
 Then the workflow `.github/workflows/sync-upstream.yml` does this task:
 
-- It moves your `main` forward to the `main` of this repository one time each day. You can also start it from the **Actions** page.
+- It merges the `main` of this repository into your `main` one time each day. You can also start it from the **Actions** page. Your own commits stay.
 - The push to your `main` deploys the update.
 
 The workflow fails in these conditions:
 
-- Your `main` has its own commits.
+- The merge has a conflict. Then the workflow does not change your `main`.
 - An update changes a workflow file.
 
 If the workflow fails, merge `upstream/main` manually.

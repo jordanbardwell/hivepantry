@@ -25,7 +25,7 @@ HivePantry is a log of calories and macronutrients for AI agents. Agents record 
 6. Open `https://<worker>.<subdomain>.workers.dev/console`.
 7. Sign in with your `ADMIN_TOKEN`.
 
-The console uses the time zone of your browser at the first sign-in. The deploy makes the D1 database and applies its schema. Your copy does not receive updates from this repository automatically. To receive them, set the repository variable `SYNC_UPSTREAM` to `true` in your copy. Refer to [docs/deploy.md](docs/deploy.md#updates).
+The console uses the time zone of your browser at the first sign-in. The deploy makes the D1 database and applies its schema. Your copy does not receive updates from this repository automatically. To receive them, connect your copy one time and set the repository variable `SYNC_UPSTREAM` to `true`. Refer to [docs/deploy.md](docs/deploy.md#updates).
 
 Optional: to sign in to the console with a code that Cloudflare sends to your email address, refer to [docs/deploy.md](docs/deploy.md#console-sign-in-with-cloudflare-access).
 

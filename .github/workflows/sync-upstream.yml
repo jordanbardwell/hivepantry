@@ -2,11 +2,12 @@ name: sync upstream
 
 # A copy made with Deploy to Cloudflare does not follow this repository on its own. An update runs
 # code from this repository against the copy's data, so the copy's owner opts in: set the
-# repository variable SYNC_UPSTREAM to true. Then once a day, or from the Actions tab, this
-# fast-forwards the copy's main to upstream main, and the push makes Workers Builds deploy the
-# update (pnpm run deploy applies new migrations first). A copy whose
-# main has its own commits is left alone and the run fails so its owner can merge by hand. The
-# default token cannot push an update that changes a workflow file, so that run fails the same way.
+# repository variable SYNC_UPSTREAM to true. Then once a day, or from the Actions tab, this merges
+# upstream main into the copy's main, and the push makes Workers Builds deploy the update
+# (pnpm run deploy applies new migrations first). A merge keeps the copy's own commits, such as the
+# worker name and database_id that Deploy to Cloudflare writes into wrangler.jsonc. If the merge
+# has a conflict, the run fails and changes nothing, so the owner can merge by hand. The default
+# token cannot push an update that changes a workflow file, so that run fails the same way.
 # It never runs in the upstream repository itself.
 
 on:
@@ -29,7 +30,7 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
-      - name: Fast-forward main to upstream
+      - name: Merge upstream main
         run: |
           git remote add upstream "https://github.com/${UPSTREAM}.git"
           git fetch upstream main
@@ -37,8 +38,11 @@ jobs:
             echo "Already up to date."
             exit 0
           fi
-          if ! git merge --ff-only upstream/main; then
-            echo "main has commits upstream does not. Merge upstream/main by hand."
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          if ! git merge --no-edit upstream/main; then
+            git merge --abort
+            echo "upstream/main does not merge cleanly into main. Merge it by hand."
             exit 1
           fi
           git push origin main
