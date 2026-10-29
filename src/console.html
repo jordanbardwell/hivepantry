@@ -313,7 +313,7 @@
         <div class="card c12">
           <h2>New agent token</h2>
           <div class="row">
-            <input id="agent-id" class="wide" placeholder="Agent ID, for example claude" pattern="[a-z0-9][a-z0-9-]*" aria-label="Agent ID">
+            <input id="agent-id" class="wide" placeholder="Agent name, for example Claude Code" maxlength="100" aria-label="Agent name">
             <select id="agent-scopes" aria-label="Access"><option value="read,write">Read and write</option><option value="read">Read only</option></select>
             <select id="agent-expiry" aria-label="Expiry"><option value="">No expiry</option><option value="30">Expires in 30 days</option><option value="90">Expires in 90 days</option><option value="365">Expires in 365 days</option></select>
             <button class="btn w" id="mint">Make token</button>
@@ -384,7 +384,8 @@
     const json = await res.json().catch(() => ({ ok: false, error: { message: `HTTP ${res.status}` } }));
     if (!json.ok) {
       if (res.status === 401) signOut();
-      throw new Error(json.error?.message || `HTTP ${res.status}`);
+      const issues = json.error?.issues?.length ? `: ${json.error.issues.join("; ")}` : "";
+      throw new Error((json.error?.message || `HTTP ${res.status}`) + issues);
     }
     return json.data;
   }
@@ -692,7 +693,7 @@
       ? `<tr><th>Agent</th><th>Access</th><th class="r">Last used</th></tr>` + rows.map((a) => {
           const live = !a.disabled_at && a.tokens.some(activeToken);
           const tok = a.tokens.filter(activeToken).pop();
-          return `<tr><td><span class="status"><i class="${live ? "on" : ""}"></i>${esc(a.id)}</span></td>
+          return `<tr><td><span class="status"><i class="${live ? "on" : ""}"></i>${esc(a.name || a.id)}</span></td>
             <td>${live ? `<span class="tag">${esc(tok.scopes.join(" + "))}</span>` : `<span class="muted">${a.disabled_at ? "disabled" : "no active token"}</span>`}</td>
             <td class="r">${esc(ago(lastUsed(a)))}</td></tr>`;
         }).join("")
@@ -717,7 +718,7 @@
     $("agents-table").innerHTML = agents.length
       ? `<tr><th>Agent</th><th>Token</th><th>Access</th><th>Last used</th><th></th></tr>` +
         agents.flatMap((a) => (a.tokens.length ? a.tokens : [null]).map((t, i) => `<tr>
-          <td>${i ? "" : `<span class="status"><i class="${!a.disabled_at && a.tokens.some(activeToken) ? "on" : ""}"></i>${esc(a.id)}</span>${a.disabled_at ? ' <span class="muted">disabled</span>' : ""}`}</td>
+          <td>${i ? "" : `<span class="status"><i class="${!a.disabled_at && a.tokens.some(activeToken) ? "on" : ""}"></i>${esc(a.name || a.id)}</span>${a.disabled_at ? ' <span class="muted">disabled</span>' : ""}`}</td>
           <td>${t ? `<code class="col-token">${esc(t.id.slice(-8))}</code>${t.revoked_at ? ' <span class="muted">revoked</span>' : t.expires_at ? ` <span class="muted">expires ${esc(t.expires_at.slice(0, 10))}</span>` : ' <span class="muted col-token">active</span>'}` : "–"}</td>
           <td>${t ? `<span class="tag">${esc(t.scopes.join(" + "))}</span>` : ""}</td><td>${t ? esc(ago(t.last_used_at)) : ""}</td>
           <td class="r">${t && !t.revoked_at ? `<button class="btn danger" data-revoke="${esc(t.id)}">Revoke</button>` : ""}</td></tr>`)).join("")
@@ -904,7 +905,12 @@
   $("mint").addEventListener("click", async () => {
     $("mint-error").textContent = "";
     try {
-      const minted = await api("/console/api/admin/tokens", { agent_id: $("agent-id").value.trim(), scopes: $("agent-scopes").value.split(","), ...($("agent-expiry").value ? { expires_in_days: Number($("agent-expiry").value) } : {}) });
+      // Any name works: "Claude Code" becomes the ID claude-code, and the name stays as typed.
+      const name = $("agent-id").value.trim();
+      const agentId = name.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+/, "").slice(0, 40).replace(/-+$/, "");
+      if (!agentId) throw new Error("Type a name for the agent, for example Claude Code.");
+      if (agentId === "owner") throw new Error("The name owner is for the admin. Use a different name.");
+      const minted = await api("/console/api/admin/tokens", { agent_id: agentId, ...(name !== agentId ? { name } : {}), scopes: $("agent-scopes").value.split(","), ...($("agent-expiry").value ? { expires_in_days: Number($("agent-expiry").value) } : {}) });
       $("minted-token").textContent = minted.token;
       $("minted").hidden = false;
       await loadAgents();
